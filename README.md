@@ -1,16 +1,163 @@
-# flutter_application_1
+# HelloFlu - Flutter学习项目 📱
 
-A new Flutter project.
+这是一个Flutter学习项目仓库，用于学习Flutter移动应用开发。
 
-## Getting Started
+## 项目结构 📁
 
-This project is a starting point for a Flutter application.
+```
+HelloFlu/
+├── helloFluDemo/              # 我的测试项目（主要）
+│   ├── lib/                   # 源代码
+│   ├── assets/                # 资源文件
+│   └── README.md             # 项目详细文档
+│
+├── temp_flutter_examples/     # 从GitHub克隆的参考项目
+│   └── covid19_mobile_app/   # COVID-19疫情追踪器原版
+│
+└── README.md                 # 本文件
+```
 
-A few resources to get you started if this is your first Flutter project:
+## 目录说明
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 📱 helloFluDemo/ - 测试项目
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+这是我正在开发和测试的Flutter项目，包含：
+
+- **项目类型**：COVID-19疫情追踪应用
+- **开发目的**：Flutter学习与实践
+- **技术栈**：Flutter SDK >= 3.0.0, Dart >= 3.0.0
+- **主要功能**：
+  - 全球疫情数据概览
+  - 国家趋势图表
+  - 国家列表与搜索
+  - 下拉刷新数据
+
+**详细信息**：请查看 [helloFluDemo/README.md](./helloFluDemo/README.md)
+
+**快速开始**：
+```bash
+cd helloFluDemo
+flutter pub get
+flutter run
+```
+
+### 📚 temp_flutter_examples/ - 参考项目
+
+这是从GitHub克隆的开源项目，用于学习和参考：
+
+- **来源**：[nisrulz/flutter-examples](https://github.com/nisrulz/flutter-examples)
+- **项目**：covid19_mobile_app
+- **用途**：
+  - 学习Flutter最佳实践
+  - 对比不同实现方式
+  - 参考项目结构和代码组织
+  - 理解第三方库的使用
+
+**注意**：这是原始版本，可能存在依赖过时或API不兼容的情况。
+
+## 项目特点 ✨
+
+### helloFluDemo 优势
+
+- ✅ **代码结构清晰**：分层架构（config/models/services/screens/widgets）
+- ✅ **中文注释详细**：每个类和主要方法都有详细说明
+- ✅ **错误处理完善**：捕获多种异常类型
+- ✅ **类型安全**：使用Dart null safety
+- ✅ **可维护性强**：常量和颜色集中管理
+- ✅ **学习友好**：适合Flutter初学者
+
+### 技术亮点
+
+- **Material Design**：深色主题，视觉效果良好
+- **异步数据加载**：使用 `FutureBuilder` 处理网络请求
+- **图表可视化**：集成 `fl_chart` 绘制趋势图
+- **响应式设计**：适配不同屏幕尺寸
+- **跨平台支持**：Android、iOS、Web、Desktop
+
+## 学习路径 📚
+
+### 推荐学习顺序
+
+1. **了解项目结构**
+   - 阅读 helloFluDemo/README.md
+   - 理解目录组织和文件命名
+
+2. **运行项目**
+   - 配置Flutter开发环境
+   - 运行 helloFluDemo 项目
+   - 体验各个功能模块
+
+3. **阅读代码**
+   - 从 `main.dart` 入口开始
+   - 依次阅读各个页面和组件
+   - 理解数据流和状态管理
+
+4. **实践修改**
+   - 修改颜色、字体等样式
+   - 添加新的数据展示项
+   - 实现新的功能模块
+
+5. **对比学习**
+   - 参考 temp_flutter_examples 中的原版实现
+   - 理解代码重构和优化的思路
+   - 学习不同的技术方案
+
+## 开发环境要求 💻
+
+- Flutter SDK >= 3.0.0
+- Dart >= 3.0.0
+- Android Studio / VS Code
+- Android SDK / Xcode（根据目标平台）
+
+## 常用命令 🛠
+
+### helloFluDemo 项目
+
+```bash
+# 进入项目目录
+cd helloFluDemo
+
+# 安装依赖
+flutter pub get
+
+# 运行应用
+flutter run
+
+# 运行测试
+flutter test
+
+# 代码分析
+flutter analyze
+
+# 构建发布版本
+flutter build apk --release
+flutter build ios --release
+```
+
+## 项目文档 📖
+
+| 文档 | 说明 |
+|------|------|
+| [helloFluDemo/README.md](./helloFluDemo/README.md) | COVID-19项目的详细说明 |
+| [AGENTS.md](./AGENTS.md) | 代码规范和开发指南（给AI Agent使用）|
+
+## 参考资源 🔗
+
+- [Flutter官方文档](https://flutter.dev/docs)
+- [Dart语言指南](https://dart.dev/guides)
+- [Flutter中文社区](https://flutter.cn/)
+- [fl_chart文档](https://pub.dev/packages/fl_chart)
+
+## 许可证 📄
+
+本项目中的学习代码仅供学习使用。
+
+## 联系方式 📧
+
+如有问题或建议，欢迎通过以下方式交流：
+- 提交 Issue
+- 发起 Pull Request
+
+---
+
+**Happy Fluttering! 🚀**

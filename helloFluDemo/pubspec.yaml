@@ -1,0 +1,44 @@
+name: covid19_tracker
+description: COVID-19疫情追踪应用 - Flutter学习项目
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP请求库 - 用于从API获取数据
+  http: ^1.2.0
+
+  # Material Icons
+  cupertino_icons: ^1.0.0
+
+  # 图表库 - 用于绘制折线图（使用更新的fl_chart）
+  fl_chart: ^0.66.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # 代码规范和linting
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # 应用资源（图片、字体等）
+  assets:
+    - assets/
+
+  # 字体配置（如果需要添加自定义字体，可以在这里配置）
+  # fonts:
+  #   - family: CustomFont
+  #     fonts:
+  #       - asset: fonts/CustomFont-Regular.ttf
+  #       - asset: fonts/CustomFont-Bold.ttf
+  #         weight: 700
