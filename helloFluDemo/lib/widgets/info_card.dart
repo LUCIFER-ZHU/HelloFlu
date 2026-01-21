@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:number_display/number_display.dart';
 import '../config/constants.dart';
 import '../config/colors.dart';
 
@@ -10,29 +9,18 @@ import '../config/colors.dart';
 class NumberFormatter {
   NumberFormatter._(); // 私有构造函数，防止实例化
 
-  /// 创建数字显示格式化器
-  ///
-  /// 返回一个函数，可以将大数字格式化为指定长度
-  /// 例如：当length=4时，2500000会显示为2.5M
-  ///
-  /// 使用示例：
-  /// ```dart
-  /// final display = createDisplay(length: 4);
-  /// print(display(2500000)); // 输出: 2.5M
-  /// ```
-  static String Function(int) createDisplay({int length = AppConstants.numberDisplayLength}) {
-    return (int number) {
-      final display = createDisplay(length: length);
-      return display(number);
-    };
-  }
-
-  /// 格式化数字为字符串
+  /// 格式化数字为易读字符串
   ///
   /// [number] - 要格式化的数字（可以是int或double）
   /// 返回格式化后的字符串
   static String formatNumber(num number) {
-    return createDisplay(length: AppConstants.numberDisplayLength)(number.toInt());
+    final intValue = number.toInt();
+    if (intValue >= 1000000) {
+      return '${(intValue / 1000000).toStringAsFixed(1)}M';
+    } else if (intValue >= 1000) {
+      return '${(intValue / 1000).toStringAsFixed(1)}K';
+    }
+    return intValue.toString();
   }
 
   /// 格式化数字字符串
@@ -74,6 +62,11 @@ class InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+      ),
+      color: backgroundColor ?? AppColors.cardBackground,
+      elevation: 4,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -98,13 +91,7 @@ class InfoCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-      // 圆角矩形形状
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
-      ),
-      color: backgroundColor ?? AppColors.cardBackground,
-      elevation: 4, // 添加阴影效果
+      ), // 添加阴影效果
     );
   }
 }

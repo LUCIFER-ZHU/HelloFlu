@@ -1,8 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:folding_cell/folding_cell.dart';
-import 'package:number_display/number_display.dart';
 import '../config/colors.dart';
-import '../config/constants.dart';
+
+/// 数字格式化工具类
+///
+/// 用于将大数字格式化为更易读的形式
+/// 例如：2,000,000 转换为 2M
+class NumberFormatter {
+  NumberFormatter._(); // 私有构造函数，防止实例化
+
+  /// 格式化数字为易读字符串
+  ///
+  /// [number] - 要格式化的数字（可以是int或double）
+  /// 返回格式化后的字符串
+  static String formatNumber(num number) {
+    final intValue = number.toInt();
+    if (intValue >= 1000000) {
+      return '${(intValue / 1000000).toStringAsFixed(1)}M';
+    } else if (intValue >= 1000) {
+      return '${(intValue / 1000).toStringAsFixed(1)}K';
+    }
+    return intValue.toString();
+  }
+
+  /// 格式化数字字符串
+  ///
+  /// [numberString] - 要格式化的数字字符串
+  /// 返回格式化后的字符串
+  static String formatNumberString(String numberString) {
+    try {
+      final number = int.parse(numberString);
+      return formatNumber(number);
+    } catch (e) {
+      // 如果解析失败，返回原始字符串
+      return numberString;
+    }
+  }
+}
 
 /// 折叠单元格组件
 ///
@@ -51,173 +84,176 @@ class CountryFoldingCell extends StatelessWidget {
 
   /// 格式化数字显示
   String _formatNumber(String number) {
-    try {
-      final display = createDisplay(length: AppConstants.numberDisplayLength);
-      return display(int.parse(number));
-    } catch (e) {
-      return number;
-    }
+    return NumberFormatter.formatNumberString(number);
   }
 
   @override
   Widget build(BuildContext context) {
-    // 为每个单元格创建唯一的key
-    final _foldingCellKey = GlobalKey<SimpleFoldingCellState>();
-
     return Container(
       color: AppColors.listContainer,
-      alignment: Alignment.topCenter,
       margin: EdgeInsets.only(bottom: 10),
-      child: SimpleFoldingCell(
-        key: _foldingCellKey,
-        // 折叠状态时显示的内容
-        frontWidget: _buildFrontWidget(context, _foldingCellKey),
-
-        // 展开时的上半部分内容
-        innerTopWidget: _buildInnerTopWidget(),
-
-        // 展开时的下半部分内容
-        innerBottomWidget: _buildInnerBottomWidget(context, _foldingCellKey),
-
-        cellSize: Size(
-          MediaQuery.of(context).size.width,
-          AppConstants.foldingCellHeight,
-        ),
-        padding: EdgeInsets.all(AppConstants.listItemSpacing),
-        animationDuration: Duration(
-          milliseconds: AppConstants.foldingAnimationDuration,
-        ),
-        borderRadius: 10,
-      ),
-    );
-  }
-
-  /// 构建折叠状态的前端widget
-  Widget _buildFrontWidget(
-    BuildContext context,
-    GlobalKey<SimpleFoldingCellState> foldingCellKey,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        // 点击时切换折叠/展开状态
-        foldingCellKey.currentState?.toggleFold();
-      },
-      child: Container(
+      child: Card(
         color: AppColors.foldingCellFront,
-        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          children: [
-            // 国旗图片
-            ClipOval(
-              child: Image.network(
-                flagUrl,
-                width: MediaQuery.of(context).size.width * 0.15,
-                height: MediaQuery.of(context).size.width * 0.15,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // 图片加载失败时显示占位图标
-                  return Container(
-                    width: MediaQuery.of(context).size.width * 0.15,
-                    height: MediaQuery.of(context).size.width * 0.15,
-                    color: AppColors.white.withOpacity(0.3),
-                    child: Icon(
-                      Icons.flag,
-                      color: AppColors.white,
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: 20.0),
-
-            // 国家名称和确诊病例数
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    countryName,
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    "总病例: ${_formatNumber(totalCases)}",
-                    style: TextStyle(
-                      color: AppColors.white.withOpacity(0.8),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 展开指示箭头
-            Icon(
-              Icons.arrow_drop_down,
-              color: AppColors.white,
-              size: 30,
-            ),
-          ],
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
-    );
-  }
-
-  /// 构建展开时的上部分widget
-  Widget _buildInnerTopWidget() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 15.0),
-      color: AppColors.cardBackground,
-      child: Column(
-        children: [
-          // 国家名称
-          Text(
-            countryName,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: 20.0,
-              fontWeight: FontWeight.bold,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            dividerColor: Colors.transparent,
+            expansionTileTheme: ExpansionTileThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              collapsedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
-          SizedBox(height: 15.0),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            childrenPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            // 折叠状态时显示的内容
+            title: Row(
+              children: [
+                // 国旗图片
+                ClipOval(
+                  child: Image.network(
+                    flagUrl,
+                    width: MediaQuery.of(context).size.width * 0.12,
+                    height: MediaQuery.of(context).size.width * 0.12,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // 图片加载失败时显示占位图标
+                      return Container(
+                        width: MediaQuery.of(context).size.width * 0.12,
+                        height: MediaQuery.of(context).size.width * 0.12,
+                        color: AppColors.white.withOpacity(0.3),
+                        child: Icon(
+                          Icons.flag,
+                          color: AppColors.white,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 16.0),
 
-          // 详细统计数据（两列布局）
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                // 国家名称和确诊病例数
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        countryName,
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "总病例: ${_formatNumber(totalCases)}",
+                        style: TextStyle(
+                          color: AppColors.white.withOpacity(0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            iconColor: AppColors.white,
+            collapsedIconColor: AppColors.white,
+            // 展开时的内容
             children: [
-              // 左列
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatText("今日病例", todayCases),
-                  SizedBox(height: 8),
-                  _buildStatText("死亡", totalDeaths),
-                  SizedBox(height: 8),
-                  _buildStatText("每百万人口", casesPerOneMillion),
-                ],
-              ),
+              Container(
+                color: AppColors.cardBackground,
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 国家名称标题
+                    Text(
+                      countryName,
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
 
-              SizedBox(width: 20.0),
+                    // 总病例（突出显示）
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            "总病例",
+                            style: TextStyle(
+                              color: AppColors.white.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            _formatNumber(totalCases),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 28.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
 
-              // 右列
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatText("康复", recovered),
-                  SizedBox(height: 8),
-                  _buildStatText("今日死亡", todayDeaths),
-                  SizedBox(height: 8),
-                  _buildStatText("危重", critical),
-                ],
+                    // 详细统计数据（两列布局）
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // 左列
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildStatText("今日病例", todayCases),
+                              SizedBox(height: 12),
+                              _buildStatText("死亡", totalDeaths),
+                              SizedBox(height: 12),
+                              _buildStatText("每百万人口", casesPerOneMillion),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(width: 20.0),
+
+                        // 右列
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildStatText("康复", recovered),
+                              SizedBox(height: 12),
+                              _buildStatText("今日死亡", todayDeaths),
+                              SizedBox(height: 12),
+                              _buildStatText("危重", critical),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -228,68 +264,8 @@ class CountryFoldingCell extends StatelessWidget {
       "$label: ${_formatNumber(value)}",
       style: TextStyle(
         color: AppColors.white,
-        fontSize: 16.0,
+        fontSize: 14.0,
       ),
-    );
-  }
-
-  /// 构建展开时的下部分widget（关闭按钮）
-  Widget _buildInnerBottomWidget(
-    BuildContext context,
-    GlobalKey<SimpleFoldingCellState> foldingCellKey,
-  ) {
-    return Builder(
-      builder: (context) {
-        return Container(
-          color: AppColors.cardBackground,
-          padding: EdgeInsets.all(10.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Text(
-                      "总病例",
-                      style: TextStyle(
-                        color: AppColors.white.withOpacity(0.8),
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      _formatNumber(totalCases),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ])),
-              ),
-              // 关闭按钮
-              TextButton(
-                onPressed: () {
-                  foldingCellKey.currentState?.toggleFold();
-                },
-                child: Text(
-                  "关闭",
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.black,
-                  shape: StadiumBorder(),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

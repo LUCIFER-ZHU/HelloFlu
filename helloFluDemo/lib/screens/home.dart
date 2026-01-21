@@ -1,123 +1,130 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../widgets/info_card.dart';
-import '../widgets/graph.dart';
-import '../widgets/drawer.dart';
-import '../config/colors.dart';
-import '../config/constants.dart';
-import '../models/covid_models.dart';
 
 /// 主页面（Home Screen）
-///
-/// 显示全球COVID-19统计数据和特定国家的趋势图表
-/// 用户可以通过下拉刷新获取最新数据
-class HomeScreen extends StatelessWidget {
+/// 显示全球COVID-19统计数据
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<Map<String, dynamic>> _globalDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGlobalData();
+  }
+
+  /// 加载全球数据
+  Future<void> _loadGlobalData() {
+    setState(() {
+      _globalDataFuture = ApiService.getGlobalData();
+    });
+    return _globalDataFuture;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 侧边栏（Drawer）
-      drawer: const AppDrawer(),
-
-      // 应用栏
       appBar: AppBar(
-        title: Text(
-          AppConstants.titleHome,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('全球疫情数据'),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
-        elevation: 4,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _loadGlobalData(),
+            tooltip: '刷新数据',
+          ),
+        ],
+      ),
+      
+      // 侧边栏导航
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'COVID-19 追踪器',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('首页'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.list),
+              title: const Text('国家列表'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/countries');
+              },
+            ),
+          ],
+        ),
       ),
 
-      // 主体内容
       body: RefreshIndicator(
-        // 下拉刷新功能
-        onRefresh: () async {
-          // 通过重新导航到当前页面来实现刷新
-          await Navigator.pushReplacement(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation1, animation2) =>
-                  const HomeScreen(),
-              transitionDuration: Duration(milliseconds: 300),
-            ),
-          );
-        },
-        color: AppColors.primary,
+        onRefresh: () => _loadGlobalData(),
         child: FutureBuilder<Map<String, dynamic>>(
-          // 异步获取数据
-          future: ApiService.getAllData(
-            country: AppConstants.defaultCountry,
-          ),
+          future: _globalDataFuture,
           builder: (context, snapshot) {
-            // 状态1：数据加载中 - 显示加载指示器
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
+              return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 4,
-                    ),
+                    CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text(
-                      '正在加载数据...',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                      ),
-                    ),
+                    Text('正在加载COVID-19数据...'),
                   ],
                 ),
               );
             }
 
-            // 状态2：发生错误 - 显示错误信息
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.error_outline,
                         size: 64,
-                        color: AppColors.errorText,
+                        color: Colors.red,
                       ),
-                      SizedBox(height: 16),
-                      Text(
-                        AppConstants.errorNetworkConnection,
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 16),
+                      const Text(
+                        '数据加载失败',
                         style: TextStyle(
-                          color: AppColors.errorText,
-                          fontSize: 16,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 12),
+                      Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: () {
-                          // 点击按钮重新加载页面
-                          Navigator.pushReplacement(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (context, a1, a2) =>
-                                  const HomeScreen(),
-                            ),
-                          );
-                        },
-                        child: Text('重试'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                        ),
+                        onPressed: () => _loadGlobalData(),
+                        child: const Text('重新加载'),
                       ),
                     ],
                   ),
@@ -125,171 +132,125 @@ class HomeScreen extends StatelessWidget {
               );
             }
 
-            // 状态3：数据加载成功 - 显示内容
             final data = snapshot.data;
-
-            // 如果数据为空
             if (data == null || data.isEmpty) {
-              return Center(
-                child: Text(
-                  '没有可用数据',
-                  style: TextStyle(color: AppColors.white),
-                ),
+              return const Center(
+                child: Text('没有可用数据'),
               );
             }
 
-            // 解析全球统计数据
-            final globalStats =
-                GlobalStats.fromJson(jsonDecode(data['all'] as String));
-
-            // 解析特定国家的历史数据
-            final dailyCases = data['country'] as List<Map<String, dynamic>>;
-            final dailyDeaths = data['deaths'] as List<Map<String, dynamic>>;
-            final dailyRecoveries =
-                data['recovered'] as List<Map<String, dynamic>>;
-
-            return _buildContent(
-              context,
-              globalStats,
-              dailyCases,
-              dailyDeaths,
-              dailyRecoveries,
-            );
+            return _buildGlobalStats(context, data);
           },
         ),
       ),
     );
   }
 
-  /// 构建页面主要内容
-  Widget _buildContent(
-    BuildContext context,
-    GlobalStats globalStats,
-    List<Map<String, dynamic>> dailyCases,
-    List<Map<String, dynamic>> dailyDeaths,
-    List<Map<String, dynamic>> dailyRecoveries,
-  ) {
+  /// 构建全球统计数据展示
+  Widget _buildGlobalStats(BuildContext context, Map<String, dynamic> data) {
     return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          SizedBox(height: 10.0),
-
-          // 第一部分：全球统计卡片（网格布局）
-          Text(
-            "全球统计数据",
-            textAlign: TextAlign.center,
+          const Text(
+            '全球COVID-19统计',
             style: TextStyle(
-              fontSize: MediaQuery.of(context).size.height * 0.025,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: AppColors.white,
             ),
           ),
-          SizedBox(height: 15.0),
+          const SizedBox(height: 20),
 
+          // 统计卡片网格
           GridView.count(
             shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            crossAxisCount: 2, // 两列布局
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
             children: [
-              // 6个信息卡片
-              InfoCard(
-                title: "总确诊",
-                number: globalStats.cases.toString(),
-              ),
-              InfoCard(
-                title: "死亡",
-                number: globalStats.deaths.toString(),
-                backgroundColor: AppColors.deathsGraph,
-              ),
-              InfoCard(
-                title: "康复",
-                number: globalStats.recovered.toString(),
-                backgroundColor: AppColors.recoveredGraph,
-              ),
-              InfoCard(
-                title: "活跃",
-                number: globalStats.active.toString(),
-              ),
-              InfoCard(
-                title: "更新时间",
-                number: _formatTimestamp(globalStats.updated),
-                backgroundColor: AppColors.accent,
-              ),
-              InfoCard(
-                title: "受影响国家",
-                number: globalStats.affectedCountries.toString(),
-                backgroundColor: AppColors.primary,
-              ),
+              _buildStatCard('总确诊', data['cases'].toString(), Colors.blue),
+              _buildStatCard('死亡', data['deaths'].toString(), Colors.red),
+              _buildStatCard('康复', data['recovered'].toString(), Colors.green),
+              _buildStatCard('活跃', data['active'].toString(), Colors.orange),
+              _buildStatCard('受影响国家', data['affectedCountries'].toString(), Colors.purple),
+              _buildStatCard('检测次数', _formatNumber(data['tests']), Colors.teal),
             ],
           ),
-          SizedBox(height: 30.0),
+          const SizedBox(height: 20),
 
-          // 第二部分：特定国家的趋势图表
-          Divider(
-            color: AppColors.white.withOpacity(0.2),
-            thickness: 1,
-          ),
-          SizedBox(height: 20.0),
-
+          // 更新时间
           Text(
-            "${AppConstants.defaultCountry} 每日趋势",
-            textAlign: TextAlign.center,
+            '最后更新: ${_formatUpdateTime(data['updated'])}',
             style: TextStyle(
-              fontSize: MediaQuery.of(context).size.height * 0.03,
-              fontWeight: FontWeight.bold,
-              color: AppColors.white,
+              color: Colors.grey[600],
+              fontSize: 14,
             ),
           ),
-          SizedBox(height: 20.0),
-
-          // 每日确诊病例图表
-          CovidGraph(
-            timelineData: dailyCases,
-            title: "每日确诊病例",
-            graphColor: AppColors.casesGraph,
-          ),
-          SizedBox(height: 25.0),
-
-          // 每日死亡病例图表
-          CovidGraph(
-            timelineData: dailyDeaths,
-            title: "每日死亡病例",
-            graphColor: AppColors.deathsGraph,
-          ),
-          SizedBox(height: 25.0),
-
-          // 每日康复病例图表
-          CovidGraph(
-            timelineData: dailyRecoveries,
-            title: "每日康复病例",
-            graphColor: AppColors.recoveredGraph,
-          ),
-          SizedBox(height: 30.0),
         ],
       ),
     );
   }
 
-  /// 格式化时间戳
-  ///
-  /// 将Unix时间戳转换为易读的格式
-  String _formatTimestamp(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final now = DateTime.now();
-    final difference = now.difference(date);
+  /// 构建统计卡片
+  Widget _buildStatCard(String title, String value, Color color) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays}天前';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}小时前';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}分钟前';
-    } else {
-      return '刚刚';
+  /// 格式化大数字
+  String _formatNumber(dynamic number) {
+    if (number == null) return '0';
+    final numValue = number is num ? number : num.tryParse(number.toString()) ?? 0;
+    
+    if (numValue >= 1000000) {
+      return '${(numValue / 1000000).toStringAsFixed(1)}M';
+    } else if (numValue >= 1000) {
+      return '${(numValue / 1000).toStringAsFixed(1)}K';
     }
+    return numValue.toString();
+  }
+
+  /// 格式化更新时间
+  String _formatUpdateTime(dynamic timestamp) {
+    if (timestamp == null) return '';
+    final intValue = timestamp is int ? timestamp : int.tryParse(timestamp.toString()) ?? 0;
+    final date = DateTime.fromMillisecondsSinceEpoch(intValue);
+    return date.toString().substring(0, 19);
   }
 }

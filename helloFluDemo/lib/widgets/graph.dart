@@ -1,10 +1,10 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:bezier_chart/bezier_chart.dart';
 import '../config/colors.dart';
 
 /// 图表组件
 ///
-/// 使用bezier_chart库绘制折线图，显示COVID-19数据的趋势
+/// 使用fl_chart库绘制折线图，显示COVID-19数据的趋势
 class CovidGraph extends StatelessWidget {
   /// 时间线数据列表
   /// 每个元素包含 {'date': DateTime, 'value': int}
@@ -27,7 +27,7 @@ class CovidGraph extends StatelessWidget {
   Widget build(BuildContext context) {
     // 如果没有数据，返回空容器
     if (timelineData.isEmpty) {
-      return Container(
+      return SizedBox(
         height: MediaQuery.of(context).size.height / 2,
         child: Center(
           child: Text(
@@ -38,17 +38,14 @@ class CovidGraph extends StatelessWidget {
       );
     }
 
-    // 获取数据的起始和结束日期
-    final fromDate = timelineData.first['date'] as DateTime;
-    final toDate = timelineData.last['date'] as DateTime;
-
     // 准备图表数据点
-    final List<DataPoint<DateTime>> dataPoints = [];
-    for (final item in timelineData) {
-      dataPoints.add(
-        DataPoint<DateTime>(
-          value: (item['value'] as num).toDouble(),
-          xAxis: item['date'] as DateTime,
+    final List<FlSpot> spots = [];
+    for (int i = 0; i < timelineData.length; i++) {
+      final item = timelineData[i];
+      spots.add(
+        FlSpot(
+          i.toDouble(),
+          (item['value'] as num).toDouble(),
         ),
       );
     }
@@ -82,34 +79,177 @@ class CovidGraph extends StatelessWidget {
           ),
           height: MediaQuery.of(context).size.height / 2.5,
           width: MediaQuery.of(context).size.width,
-          child: BezierChart(
-            fromDate: fromDate,
-            bezierChartScale: BezierChartScale.WEEKLY,
-            toDate: toDate,
-            selectedDate: toDate,
-            series: [
-              BezierLine(
-                data: dataPoints,
-                lineColor: graphColor,
-                lineStrokeWidth: 4,
-                pointColor: graphColor,
+          padding: EdgeInsets.all(16),
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: _calculateInterval(spots),
+                getDrawingHorizontalLine: (value) {
+                  return FlLine(
+                    color: AppColors.white.withOpacity(0.1),
+                    strokeWidth: 1,
+                  );
+                },
               ),
-            ],
-            config: BezierChartConfig(
-              physics: BouncingScrollPhysics(),
-              verticalIndicatorStrokeWidth: 3.0,
-              verticalIndicatorColor: AppColors.white.withOpacity(0.15),
-              showVerticalIndicator: true,
-              verticalIndicatorFixedPosition: false,
-              backgroundColor: AppColors.black,
-              footerHeight: 30.0,
-              displayYAxis: true,
-              displayDataPointWhenNoLine: false,
-              pinchZoom: true,
+              titlesData: FlTitlesData(
+                show: true,
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: _calculateBottomInterval(spots.length),
+                    getTitlesWidget: (value, meta) {
+                      if (value.toInt() >= 0 &&
+                          value.toInt() < timelineData.length) {
+                        final date = timelineData[value.toInt()]['date'] as DateTime;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            '${date.month}/${date.day}',
+                            style: TextStyle(
+                              color: AppColors.white.withOpacity(0.7),
+                              fontSize: 10,
+                            ),
+                          ),
+                        );
+                      }
+                      return Text('');
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: _calculateInterval(spots),
+                    reservedSize: 40,
+                    getTitlesWidget: (value, meta) {
+                      return Text(
+                        _formatValue(value),
+                        style: TextStyle(
+                          color: AppColors.white.withOpacity(0.7),
+                          fontSize: 10,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(
+                show: false,
+              ),
+              minX: 0,
+              maxX: (spots.length - 1).toDouble(),
+              minY: _getMinY(spots),
+              maxY: _getMaxY(spots),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  gradient: LinearGradient(
+                    colors: [graphColor.withOpacity(0.8), graphColor],
+                  ),
+                  barWidth: 3,
+                  isStrokeCapRound: true,
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      return FlDotCirclePainter(
+                        radius: 4,
+                        color: graphColor,
+                        strokeWidth: 0,
+                      );
+                    },
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    gradient: LinearGradient(
+                      colors: [
+                        graphColor.withOpacity(0.3),
+                        graphColor.withOpacity(0.0),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ],
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  tooltipBgColor: AppColors.black.withOpacity(0.8),
+                  getTooltipItems: (touchedSpots) {
+                    return touchedSpots.map((spot) {
+                      if (spot.x.toInt() >= 0 &&
+                          spot.x.toInt() < timelineData.length) {
+                        final date =
+                            timelineData[spot.x.toInt()]['date'] as DateTime;
+                        return LineTooltipItem(
+                          '${date.year}/${date.month}/${date.day}\n${spot.y.toInt()}',
+                          TextStyle(color: AppColors.white),
+                        );
+                      }
+                      return null;
+                    }).toList();
+                    },
+                ),
+                handleBuiltInTouches: true,
+              ),
             ),
           ),
         ),
       ],
     );
+  }
+
+  /// 计算Y轴刻度间隔
+  double _calculateInterval(List<FlSpot> spots) {
+    if (spots.isEmpty) return 1;
+    final values = spots.map((s) => s.y).toList();
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final range = maxValue - minValue;
+    if (range == 0) return 1;
+    final intervals = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+    for (final interval in intervals) {
+      if (range / interval < 10) return interval.toDouble();
+    }
+    return (range / 10).ceil().toDouble();
+  }
+
+  /// 计算底部X轴刻度间隔
+  double _calculateBottomInterval(int dataLength) {
+    if (dataLength <= 10) return 1;
+    if (dataLength <= 30) return 5;
+    if (dataLength <= 60) return 10;
+    if (dataLength <= 120) return 15;
+    return 30;
+  }
+
+  /// 获取Y轴最小值
+  double _getMinY(List<FlSpot> spots) {
+    if (spots.isEmpty) return 0;
+    return spots.map((s) => s.y).reduce((a, b) => a < b ? a : b) * 0.9;
+  }
+
+  /// 获取Y轴最大值
+  double _getMaxY(List<FlSpot> spots) {
+    if (spots.isEmpty) return 10;
+    return spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) * 1.1;
+  }
+
+  /// 格式化数值显示
+  String _formatValue(double value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
+    return value.toInt().toString();
   }
 }
