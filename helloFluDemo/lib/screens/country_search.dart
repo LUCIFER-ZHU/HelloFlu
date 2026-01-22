@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../widgets/folding_cell.dart';
 import '../config/colors.dart';
 import '../config/constants.dart';
-import '../models/covid_models.dart';
 
 /// 国家搜索代理（SearchDelegate）
 ///
@@ -96,19 +95,17 @@ class CountrySearchDelegate extends SearchDelegate {
       itemCount: suggestionsList.length,
       itemBuilder: (context, index) {
         final countryData = suggestionsList[index] as Map<String, dynamic>;
-        final countryStats = CountryStats.fromJson(countryData);
 
         return CountryFoldingCell(
-          countryName: countryStats.country,
-          flagUrl: countryStats.flag ?? '',
-          totalCases: countryStats.cases.toString(),
-          todayCases: countryStats.todayCases.toString(),
-          totalDeaths: countryStats.deaths.toString(),
-          todayDeaths: countryStats.todayDeaths.toString(),
-          recovered: countryStats.recovered.toString(),
-          critical: countryStats.critical.toString(),
-          casesPerOneMillion: countryStats.casesPerOneMillion
-              .toStringAsFixed(1),
+          countryName: countryData['country']?.toString() ?? '',
+          flagUrl: countryData['countryInfo']?['flag']?.toString() ?? '',
+          totalCases: countryData['cases']?.toString() ?? '0',
+          todayCases: countryData['todayCases']?.toString() ?? '0',
+          totalDeaths: countryData['deaths']?.toString() ?? '0',
+          todayDeaths: countryData['todayDeaths']?.toString() ?? '0',
+          recovered: countryData['recovered']?.toString() ?? '0',
+          critical: countryData['critical']?.toString() ?? '0',
+          casesPerOneMillion: (countryData['casesPerOneMillion'] as num?)?.toStringAsFixed(1) ?? '0',
         );
       },
     );

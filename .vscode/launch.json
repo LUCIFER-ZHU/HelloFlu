@@ -1,0 +1,48 @@
+{
+  // 使用 IntelliSense 了解相关属性。 
+  // 悬停以查看现有属性的描述。
+  // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "helloFluDemo",
+      "cwd": "helloFluDemo",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "helloFluDemo (profile mode)",
+      "cwd": "helloFluDemo",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "helloFluDemo (release mode)",
+      "cwd": "helloFluDemo",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release"
+    },
+    {
+      "name": "covid19_mobile_app",
+      "cwd": "temp_flutter_examples\\covid19_mobile_app",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "covid19_mobile_app (profile mode)",
+      "cwd": "temp_flutter_examples\\covid19_mobile_app",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "covid19_mobile_app (release mode)",
+      "cwd": "temp_flutter_examples\\covid19_mobile_app",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release"
+    }
+  ]
+}

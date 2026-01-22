@@ -28,10 +28,20 @@ class AppConstants {
   /// 国家列表标题
   static const String titleCountryList = '受影响的国家';
   
-  // ============= 错误提示信息 =============
-  /// 网络连接失败提示
-  static const String errorNetworkConnection = '无法加载数据，请检查网络连接！';
+   // ============= 错误提示信息 =============
+   /// 网络连接失败提示
+   static const String errorNetworkConnection = '无法加载数据，请检查网络连接！';
 
-  /// 一般错误提示
-  static const String errorGeneral = '发生错误，请稍后重试！';
+   /// 一般错误提示
+   static const String errorGeneral = '发生错误，请稍后重试！';
+
+   // ============= UI 常量 =============
+   /// 搜索提示文本
+   static const String searchHint = '搜索国家...';
+
+   /// 卡片圆角半径
+   static const double cardBorderRadius = 12.0;
+
+   /// 标题字体大小因子
+   static const double titleFontSizeFactor = 0.03;
 }
