@@ -345,38 +345,13 @@ class _HomeScreenState extends State<HomeScreen> {
     print('_buildChartsSection 被调用');
     print('historicalData 是否为空: ${historicalData.isEmpty}');
 
-    // 如果没有历史数据，显示提示信息
-    if (historicalData.isEmpty || historicalData['timeline'] == null) {
-      print('历史数据为空，显示加载提示');
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                '正在加载历史数据...',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '（如果长时间未加载，请检查网络连接）',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     // 使用缓存的数据，避免重复计算
     final casesData = _cachedCasesData;
     final deathsData = _cachedDeathsData;
     final recoveredData = _cachedRecoveredData;
-    print('使用缓存数据: cases: ${casesData?.length}, '
-        'deaths: ${deathsData?.length}, '
-        'recovered: ${recoveredData?.length}');
+    print('使用缓存数据: cases: ${casesData.length}, '
+        'deaths: ${deathsData.length}, '
+        'recovered: ${recoveredData.length}');
 
     // 如果转换后数据为空，提示用户
     if (casesData.isEmpty && deathsData.isEmpty && recoveredData.isEmpty) {

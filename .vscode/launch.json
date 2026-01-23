@@ -24,25 +24,5 @@
       "type": "dart",
       "flutterMode": "release"
     },
-    {
-      "name": "covid19_mobile_app",
-      "cwd": "temp_flutter_examples\\covid19_mobile_app",
-      "request": "launch",
-      "type": "dart"
-    },
-    {
-      "name": "covid19_mobile_app (profile mode)",
-      "cwd": "temp_flutter_examples\\covid19_mobile_app",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "profile"
-    },
-    {
-      "name": "covid19_mobile_app (release mode)",
-      "cwd": "temp_flutter_examples\\covid19_mobile_app",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "release"
-    }
   ]
 }
