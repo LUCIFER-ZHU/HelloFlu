@@ -1,37 +1,51 @@
 # AGENTS.md - Codebase Guide for COVID-19 Tracker Flutter App
 
 ## Project Overview
-This is a Flutter learning project (COVID-19 pandemic tracker) written in Dart with extensive Chinese documentation. The project demonstrates clean architecture with clear separation of concerns.
+Enterprise-grade Flutter COVID-19 tracker using modern architecture (Riverpod, Dio, GoRouter). Clean separation of concerns with dependency injection and state management best practices.
 
 ## Build, Lint, and Test Commands
 
 ### Installation
 ```bash
-# Install dependencies
 cd helloFluDemo && flutter pub get
+```
 
-# Run the app (on connected device/emulator)
+### Running the App
+```bash
+# Run on connected device/emulator
 flutter run
 
-# Run on specific platforms
+# Specific platforms
 flutter run -d android
 flutter run -d ios
 flutter run -d chrome
 
+# Chrome with fixed debug port (prevents multiple instances)
+flutter run -d chrome --web-port=30000
+```
+
+### Testing
+```bash
 # Run all tests
 flutter test
-
-# Run a single test file
-flutter test test/widget_test.dart
 
 # Run specific test by name
 flutter test --name="test_name_here"
 
-# Analyze code for issues
+# Run single test file
+flutter test test/widget_test.dart
+```
+
+### Code Quality
+```bash
+# Analyze code
 flutter analyze
 
 # Fix linting issues automatically
 dart fix --apply
+
+# Format code
+dart format .
 ```
 
 ## Code Style Guidelines
@@ -62,10 +76,28 @@ dart fix --apply
 - **Files**: snake_case (`home.dart`, `api_service.dart`)
 
 ### Error Handling
-- Catch specific exceptions: `http.ClientException`, `FormatException`
+- Catch specific exceptions: `DioException` (not `http.ClientException`)
 - Always include generic `catch` fallback
 - Provide user-friendly error messages in Chinese
-- Use `FutureBuilder` for async error handling in UI
+- Use `AsyncValue.when()` for async error handling in UI (Riverpod)
+- Use `AsyncValue.guard()` for error wrapping in notifiers
+
+### State Management (Riverpod)
+- **StateNotifier Pattern**: Extend `StateNotifier<T>` for stateful logic
+- **ConsumerWidget**: Use for screens that read state (`ref.watch()`)
+- **ConsumerStatefulWidget**: Use when needing `initState` with `ref.read()`
+- **Dependency Injection**: Inject dependencies via constructor parameters
+- **Provider Types**:
+  - `Provider<T>`: Read-only values (theme, locale, services)
+  - `StateNotifierProvider<T, State>`: Mutable state with business logic
+  - `FutureProvider.family<T, Arg>`: Async data with parameters
+  - `AsyncValue`: Handle `loading`, `data`, `error` states
+
+### Provider Organization
+- All providers defined in `lib/providers/providers.dart`
+- Group by purpose: Config → Services → State → Route
+- Use `ref.watch()` for dependencies between providers
+- Use `ref.read()` for one-time reads (e.g., in callbacks)
 
 ### Comments and Documentation
 - **Classes and public methods**: Use `///` Dart doc comments
@@ -75,33 +107,19 @@ dart fix --apply
 
 ### Widget Patterns
 
-### Stateless vs Stateful
-- Prefer `StatelessWidget` for screens
-- Use `StatefulWidget` only when internal state management is required
-- Always include `super.key` parameter
+**Stateless vs Stateful**: Prefer `StatelessWidget` for screens; use `StatefulWidget` only when internal state management is required. Always include `super.key` parameter.
 
-### Async Data Loading
-- Use `FutureBuilder` for async operations
-- Handle `waiting`, `hasError`, and `hasData` states
-- Provide loading indicators and error messages
+**Async Data Loading**: Use `FutureBuilder` for async operations. Handle `waiting`, `hasError`, and `hasData` states. Provide loading indicators and error messages.
 
-### Navigation
-- Use named routes defined in `main.dart`
-- `Navigator.pushReplacementNamed()` for full page transitions
-- `showSearch()` for search functionality
+**Navigation**: Use GoRouter for navigation (configured in `lib/providers/providers.dart`). `context.push()` for navigation, `context.pop()` to go back, `context.pushReplacement()` to replace current route.
 
-### Theme and Styling
-- **Theme**: Material Design dark theme
-- **Primary color**: Blue
-- **Accent color**: Red (#f4796b)
-- **Font**: Default Material font
-- All colors centralized in `lib/config/colors.dart`
+**Theme and Styling**: Material Design dark theme, primary color blue, accent color red (#f4796b). All colors centralized in `lib/config/colors.dart`.
 
 ### Utility Class Pattern
 Use private constructors to prevent instantiation for utility classes:
 ```dart
 class AppColors {
-  AppColors._(); // Private constructor
+  AppColors._();
   static const Color primary = Colors.blue;
   static const Color accent = Color(0xfff4796b);
 }
@@ -110,65 +128,46 @@ class AppColors {
 ## Project Structure
 ```
 lib/
-├── config/              # Configuration files
-│   ├── colors.dart      # Theme colors (AppColors utility class)
-│   └── constants.dart   # API URLs, default values (AppConstants class)
-├── models/              # Data models
-│   └── covid_models.dart  # GlobalStats, CountryStats, TimelineDataPoint
-├── screens/             # Page widgets
-│   ├── home.dart           # Home screen with global data and charts
-│   ├── country_list.dart   # Country list with folding cells
-│   └── country_search.dart # Search functionality
-├── services/            # Service layer
-│   └── api_service.dart    # API service (getAllData, getAllCountriesData)
-└── widgets/             # Reusable components
-    ├── drawer.dart         # Navigation drawer
-    ├── folding_cell.dart   # Expandable list cells
-    ├── graph.dart         # Chart component (fl_chart)
-    └── info_card.dart     # Info card widget
+├── config/              # Configuration files (colors, constants)
+├── core/               # Core functionality
+│   └── network/        # Network layer (dio_client.dart)
+├── models/             # Data models (covid_models.dart)
+├── notifiers/          # State notifiers (Riverpod)
+├── providers/          # Riverpod providers (providers.dart)
+├── screens/            # Page widgets
+├── services/           # Service layer (api_service.dart)
+└── widgets/            # Reusable components
 ```
 
 ## Key Dependencies
-- `http ^1.2.0` - API requests
-- `fl_chart ^0.66.0` - Chart visualization
-- `number_display ^2.2.1` - Large number formatting
-- `folding_cell ^0.1.2` - Expandable list cells
-- `cupertino_icons ^1.0.0` - iOS-style icons
-- `flutter_lints ^3.0.0` - Code linting (relaxed for learning)
+- `dio ^5.7.0` - HTTP client (enterprise-grade, interceptors)
+- `flutter_riverpod ^2.6.1` - State management & dependency injection
+- `go_router ^14.6.0` - Declarative routing
+- `logger ^2.4.0` - Logging
+- `shared_preferences ^2.3.2` - Key-value storage
+- `flutter_dotenv ^5.1.0` - Environment configuration
+- `intl ^0.20.1` - Internationalization
+- `fl_chart ^0.70.1` - Chart visualization
+- `cupertino_icons ^1.0.8` - iOS-style icons
+- `flutter_lints ^5.0.0` - Code linting (relaxed for learning)
 
 ## Linter Configuration
-The project uses relaxed lint rules intentionally for learners:
-- `prefer_const_constructors: false`
-- `use_key_in_widget_constructors: false`
-- `prefer_final_fields: false`
-- `avoid_print: false`
+Relaxed lint rules for learners: `prefer_const_constructors`, `use_key_in_widget_constructors`, `prefer_final_fields`, `prefer_const_literals_to_create_immutables`, `prefer_const_constructors_in_immutables`, `avoid_print` all set to `false`.
 
 ## Testing
-- Tests located in `test/` directory
-- Use `flutter test` to run all tests
-- Use `flutter test --name="test_name"` for specific tests
-- Widget tests use `WidgetTester` for interaction testing
-
-## Theme and Styling
-- **Theme**: Material Design dark theme
-- **Primary color**: Blue
-- **Accent color**: Red (#f4796b)
-- **Font**: Default Material font
-- All colors centralized in `lib/config/colors.dart`
+Tests located in `test/` directory. Use `flutter test` to run all tests, `flutter test --name="test_name"` for specific tests. Widget tests use `WidgetTester` for interaction testing.
 
 ## API Integration
 - **API Provider**: disease.sh (free public COVID-19 API)
 - **Endpoints**:
-  - Global data: `https://disease.sh/v3/covid-19/all`
+  - Global: `https://disease.sh/v3/covid-19/all`
   - Countries: `https://disease.sh/v3/covid-19/countries?sort=country`
   - History: `https://disease.sh/v3/covid-19/historical/{country}`
-- All API calls centralized in `ApiService` class
+- All API calls centralized in `ApiService` class using `DioClient.dio`
 - Always handle HTTP status codes and parse errors
 
 ## Language and Localization
-- **UI text**: Simplified Chinese
-- **Comments**: Simplified Chinese with English technical terms
-- **Code**: English variable names, Chinese explanations
+UI text: Simplified Chinese. Comments: Simplified Chinese with English technical terms. Code: English variable names, Chinese explanations.
 
 ## When Adding New Features
 1. Define data models in `lib/models/` if new data structures needed
@@ -180,24 +179,24 @@ The project uses relaxed lint rules intentionally for learners:
 7. Add Chinese documentation for all public APIs
 8. Handle errors gracefully with user-friendly messages
 
+## Environment Configuration
+Environment variables loaded via `flutter_dotenv` (`.env` files in root). Environment switching: `flutter run --dart-define=ENVIRONMENT=production`. Configuration read from `lib/config/app_config.dart`.
+
 ## Chrome Debug Port Configuration
 
 ### Fixed Debug Port Issue
 
-**Problem**: 每次启动 Chrome 浏览器调试时，`flutter run -d chrome` 会自动分配不同的端口（如 8080, 8081, 8082...），导致多个调试终端同时打开，造成混乱和资源占用。
+**Problem**: `flutter run -d chrome` auto-assigns different ports (8080, 8081...), causing multiple Chrome instances.
 
-**Solution**: 每次使用固定的调试端口，避免重复启动。
+**Solution**: Use fixed port to prevent duplicate instances.
 
 ### How to Use Fixed Port
 
-**方法 1: 使用固定端口号启动**
 ```bash
+# Method 1: Command line
 flutter run -d chrome --web-port=30000
-```
 
-**方法 2: 在 VS Code 中配置调试端口（推荐）**
-在项目根目录创建 `.vscode/launch.json`：
-```json
+# Method 2: VS Code - Create `.vscode/launch.json`
 {
   "version": "0.2.0",
   "configurations": [
@@ -205,29 +204,16 @@ flutter run -d chrome --web-port=30000
       "name": "Flutter",
       "type": "dart",
       "request": "launch",
-      "args": [
-        "-d",
-        "chrome",
-        "--web-port=30000"
-      ]
+      "args": ["-d", "chrome", "--web-port=30000"]
     }
   ]
 }
 ```
 
-### 为什么使用固定端口
-
-1. **避免冲突**: 固定端口确保不会与其他应用冲突
-2. **资源优化**: 减少打开多余 Chrome 实例
-3. **调试一致性**: 保持相同的调试环境配置
-4. **可预测**: 端口号固定，便于记忆和使用
-
-### 注意事项
-
-- 如果端口 30000 被占用，可以尝试其他端口（如 30001, 30002）
-- 使用 VS Code 的 "Run and Debug" 按钮可以直接启动调试，无需手动输入命令
-- 确保 Chrome 浏览器已关闭（Ctrl+Shift+W 或点击停止按钮）
+**Benefits**: Avoid port conflicts, reduce Chrome instances, consistent debugging
+**Notes**: Use alternate ports (30001, 30002) if 30000 is occupied
 
 ---
 
-**Last Updated**: 2026-01-23 - Added Chrome debug port configuration guide
+**Last Updated**: 2026-01-29 - Updated for enterprise architecture (Riverpod, Dio, GoRouter)
+
