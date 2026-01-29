@@ -1,28 +1,94 @@
 {
-  // 使用 IntelliSense 了解相关属性。 
-  // 悬停以查看现有属性的描述。
-  // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+  // Flutter 调试配置
+  //
+  // 注意：Flutter 不支持 npm 风格的自定义 scripts。
+  // 常用命令需要通过终端或 VS Code 的任务栏运行。
+  //
+  // 可用配置：
+  // - args: 命令行参数（如 --dart-define、--web-port 等）
+  // - flutterMode: debug | profile | release
+  // - device: 指定运行设备（可使用 'flutter devices' 查看）
+  //
+  // 了解更多信息：https://go.microsoft.com/fwlink/?linkid=830387
+
   "version": "0.2.0",
   "configurations": [
+    // ========== 开发配置 ==========
+
     {
-      "name": "helloFluDemo",
-      "cwd": "helloFluDemo",
-      "request": "launch",
-      "type": "dart"
-    },
-    {
-      "name": "helloFluDemo (profile mode)",
-      "cwd": "helloFluDemo",
-      "request": "launch",
+      "name": "Flutter Run (Development)",
       "type": "dart",
-      "flutterMode": "profile"
-    },
-    {
-      "name": "helloFluDemo (release mode)",
-      "cwd": "helloFluDemo",
       "request": "launch",
-      "type": "dart",
-      "flutterMode": "release"
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "args": [
+        // Web 固定端口（避免重复打开 Chrome）
+        "--web-port=30000"
+      ]
     },
+
+    // ========== Profile 模式构建 ==========
+
+    {
+      "name": "Flutter Profile Build",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define=ENVIRONMENT=development"
+      ]
+    },
+
+    // ========== Release 模式构建 ==========
+
+    {
+      "name": "Flutter Release Build",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "flutterMode": "release",
+      "args": [
+        "--dart-define=ENVIRONMENT=production"
+      ]
+    },
+
+    // ========== 分析代码 ==========
+
+    {
+      "name": "Flutter Analyze",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "args": [
+        "analyze"
+      ]
+    },
+
+    // ========== 运行测试 ==========
+
+    {
+      "name": "Flutter Test",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "args": [
+        "test"
+      ]
+    },
+
+    // ========== Chrome 调试 ==========
+
+    {
+      "name": "Chrome Debug (Port 30000)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/helloFluDemo",
+      "args": [
+        "-d",
+        "chrome",
+        "--web-port=30000",
+        "--dart-define=ENVIRONMENT=development"
+      ]
+    }
   ]
 }

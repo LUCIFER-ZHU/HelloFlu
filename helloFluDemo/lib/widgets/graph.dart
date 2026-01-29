@@ -71,7 +71,7 @@ class CovidGraph extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: AppColors.black.withOpacity(0.3),
+                color: AppColors.black.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: Offset(0, 4),
               ),
@@ -88,7 +88,7 @@ class CovidGraph extends StatelessWidget {
                 horizontalInterval: _calculateInterval(spots),
                 getDrawingHorizontalLine: (value) {
                   return FlLine(
-                    color: AppColors.white.withOpacity(0.1),
+                    color: AppColors.white.withValues(alpha: 0.1),
                     strokeWidth: 1,
                   );
                 },
@@ -114,7 +114,7 @@ class CovidGraph extends StatelessWidget {
                           child: Text(
                             '${date.month}/${date.day}',
                             style: TextStyle(
-                              color: AppColors.white.withOpacity(0.7),
+                              color: AppColors.white.withValues(alpha: 0.7),
                               fontSize: 10,
                             ),
                           ),
@@ -133,7 +133,7 @@ class CovidGraph extends StatelessWidget {
                       return Text(
                         _formatValue(value),
                         style: TextStyle(
-                          color: AppColors.white.withOpacity(0.7),
+                          color: AppColors.white.withValues(alpha: 0.7),
                           fontSize: 10,
                         ),
                       );
@@ -153,7 +153,7 @@ class CovidGraph extends StatelessWidget {
                   spots: spots,
                   isCurved: true,
                   gradient: LinearGradient(
-                    colors: [graphColor.withOpacity(0.8), graphColor],
+                    colors: [graphColor.withValues(alpha: 0.8), graphColor],
                   ),
                   barWidth: 3,
                   isStrokeCapRound: true,
@@ -171,8 +171,8 @@ class CovidGraph extends StatelessWidget {
                     show: true,
                     gradient: LinearGradient(
                       colors: [
-                        graphColor.withOpacity(0.3),
-                        graphColor.withOpacity(0.0),
+                        graphColor.withValues(alpha: 0.3),
+                        graphColor.withValues(alpha: 0.0),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -182,7 +182,6 @@ class CovidGraph extends StatelessWidget {
               ],
               lineTouchData: LineTouchData(
                 touchTooltipData: LineTouchTooltipData(
-                  tooltipBgColor: AppColors.black.withOpacity(0.8),
                   getTooltipItems: (touchedSpots) {
                     return touchedSpots.map((spot) {
                       if (spot.x.toInt() >= 0 &&

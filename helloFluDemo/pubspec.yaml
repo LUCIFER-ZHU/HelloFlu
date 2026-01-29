@@ -12,21 +12,53 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # HTTP请求库 - 用于从API获取数据
-  http: ^1.2.0
+  # ===== 网络请求 =====
+  # Dio - 企业级 HTTP 客户端（替代 http 包）
+  dio: ^5.7.0
 
+  # ===== 状态管理 =====
+  # Riverpod - 现代状态管理方案（含依赖注入）
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # ===== 路由 =====
+  # GoRouter - 声明式路由
+  go_router: ^14.6.0
+
+  # ===== 日志 =====
+  # Logger - 日志工具
+  logger: ^2.4.0
+
+  # ===== 存储 =====
+  # SharedPreferences - 键值对存储（类似 localStorage）
+  shared_preferences: ^2.3.2
+
+  # ===== 环境配置 =====
+  # FlutterDotenv - 环境变量加载
+  flutter_dotenv: ^5.1.0
+
+  # ===== 工具库 =====
+  # Intl - 国际化和日期格式化
+  intl: ^0.20.1
+
+  # ===== UI 组件 =====
   # Material Icons
-  cupertino_icons: ^1.0.0
+  cupertino_icons: ^1.0.8
 
-  # 图表库 - 用于绘制折线图（使用更新的fl_chart）
-  fl_chart: ^0.66.0
+  # 图表库 - 用于绘制折线图
+  fl_chart: ^0.70.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # 代码规范和linting
-  flutter_lints: ^3.0.0
+  # ===== 代码生成 =====
+  # Build Runner - 代码生成工具
+  build_runner: ^2.4.13
+
+  # ===== 代码规范 =====
+  # Flutter Lints - 官方 lint 规则
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
@@ -34,6 +66,10 @@ flutter:
   # 应用资源（图片、字体等）
   assets:
     - assets/
+    # 环境配置文件
+    - .env
+    - .env.development
+    - .env.production
 
   # 字体配置（如果需要添加自定义字体，可以在这里配置）
   # fonts:

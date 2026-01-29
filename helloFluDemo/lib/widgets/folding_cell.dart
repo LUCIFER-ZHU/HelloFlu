@@ -128,7 +128,7 @@ class CountryFoldingCell extends StatelessWidget {
                       return Container(
                         width: MediaQuery.of(context).size.width * 0.12,
                         height: MediaQuery.of(context).size.width * 0.12,
-                        color: AppColors.white.withOpacity(0.3),
+                        color: AppColors.white.withValues(alpha: 0.3),
                         child: Icon(
                           Icons.flag,
                           color: AppColors.white,
@@ -157,7 +157,7 @@ class CountryFoldingCell extends StatelessWidget {
                       Text(
                         "总病例: ${_formatNumber(totalCases)}",
                         style: TextStyle(
-                          color: AppColors.white.withOpacity(0.8),
+                          color: AppColors.white.withValues(alpha: 0.8),
                           fontSize: 12,
                         ),
                       ),
@@ -194,7 +194,7 @@ class CountryFoldingCell extends StatelessWidget {
                           Text(
                             "总病例",
                             style: TextStyle(
-                              color: AppColors.white.withOpacity(0.7),
+                              color: AppColors.white.withValues(alpha: 0.7),
                               fontSize: 14,
                             ),
                           ),

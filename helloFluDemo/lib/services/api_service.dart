@@ -1,90 +1,109 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
+import '../config/app_config.dart';
+import '../core/network/dio_client.dart';
 
-/// API服务类
+/// API 服务类
+///
+/// 封装所有与后端 API 的交互
+/// 使用 Dio 进行 HTTP 请求
+/// 统一错误处理和日志记录
 class ApiService {
-  ApiService._(); // 私有构造函数，防止实例化
+  ApiService._();
 
-  // API基础URL
-  static const String _baseUrl = 'https://disease.sh/v3/covid-19';
+  /// Logger 实例
+  static final Logger _logger = Logger();
 
-  /// 获取全球COVID-19统计数据
+  /// 获取全球 COVID-19 统计数据
+  ///
+  /// 返回全球疫情数据的 Map
+  /// 包含确诊、死亡、康复、活跃病例等信息
+  ///
+  /// 抛出 [DioException] 当网络请求失败时
   static Future<Map<String, dynamic>> getGlobalData() async {
     try {
-      print('开始获取全球数据...');
-      final url = Uri.parse('$_baseUrl/all');
-      print('请求URL: $url');
-      final response = await http.get(url);
-      print('响应状态码: ${response.statusCode}');
+      _logger.i('开始获取全球数据...');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        print('全球数据获取成功，数据量: ${data.length}');
-        return data;
-      } else {
-        final errorMsg = '获取全球数据失败: HTTP ${response.statusCode}';
-        print(errorMsg);
-        throw Exception(errorMsg);
-      }
-    } on http.ClientException catch (e) {
-      final errorMsg = '网络连接错误: ${e.message}';
-      print(errorMsg);
-      throw Exception(errorMsg);
+      final response = await DioClient.dio.get(AppConfig.endpointGlobal);
+
+      _logger.i('全球数据获取成功，数据量: ${response.data.length}');
+      return response.data as Map<String, dynamic>;
     } catch (e) {
-      final errorMsg = '获取全球数据失败: $e';
-      print(errorMsg);
-      throw Exception(errorMsg);
+      _logger.e('获取全球数据失败: $e');
+      rethrow;
     }
   }
 
-  /// 获取所有国家的COVID-19统计数据
+  /// 获取所有国家的 COVID-19 统计数据
   ///
+  /// [sort] - 排序方式（默认按国家名称排序）
   /// 返回解析后的国家数据列表
-  static Future<List<dynamic>> getAllCountriesData() async {
+  ///
+  /// 抛出 [DioException] 当网络请求失败时
+  static Future<List<dynamic>> getAllCountriesData({
+    String sort = 'country',
+  }) async {
     try {
-      final url = Uri.parse('$_baseUrl/countries?sort=country');
-      final response = await http.get(url);
+      _logger.i('开始获取国家列表...');
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as List<dynamic>;
-      } else {
-        throw Exception('获取国家列表失败: HTTP ${response.statusCode}');
-      }
+      final response = await DioClient.dio.get(
+        AppConfig.endpointCountries(sort: sort),
+      );
+
+      final countries = response.data as List<dynamic>;
+      _logger.i('国家列表获取成功，数量: ${countries.length}');
+      return countries;
     } catch (e) {
-      throw Exception('获取国家列表失败: $e');
+      _logger.e('获取国家列表失败: $e');
+      rethrow;
     }
   }
 
   /// 获取特定国家的历史数据
   ///
-  /// [country] - 国家名称
-  /// 返回解析后的历史数据Map
-  static Future<Map<String, dynamic>> getCountryHistoricalData(String country) async {
+  /// [country] - 国家名称（如 'China', 'USA'）
+  /// 返回解析后的历史数据 Map，包含每日的确诊、死亡、康复数据
+  ///
+  /// 抛出 [DioException] 当网络请求失败时
+  static Future<Map<String, dynamic>> getCountryHistoricalData(
+    String country,
+  ) async {
     try {
-      print('开始获取$country的历史数据...');
-      final countryParam = country.replaceAll(' ', '%20');
-      final url = Uri.parse('$_baseUrl/historical/$countryParam');
-      print('请求URL: $url');
-      final response = await http.get(url);
-      print('响应状态码: ${response.statusCode}');
+      _logger.i('开始获取 $country 的历史数据...');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        print('$country历史数据获取成功');
-        return data;
-      } else {
-        final errorMsg = '获取$country历史数据失败: HTTP ${response.statusCode}';
-        print(errorMsg);
-        throw Exception(errorMsg);
-      }
-    } on http.ClientException catch (e) {
-      final errorMsg = '网络连接错误: ${e.message}';
-      print(errorMsg);
-      throw Exception(errorMsg);
+      // URL 编码国家名称
+      final encodedCountry = Uri.encodeComponent(country);
+      final response = await DioClient.dio.get(
+        AppConfig.endpointHistorical(encodedCountry),
+      );
+
+      _logger.i('$country 历史数据获取成功');
+      return response.data as Map<String, dynamic>;
     } catch (e) {
-      final errorMsg = '获取$country历史数据失败: $e';
-      print(errorMsg);
-      throw Exception(errorMsg);
+      _logger.e('获取 $country 历史数据失败: $e');
+      rethrow;
+    }
+  }
+
+  /// 获取单个国家的详细统计数据
+  ///
+  /// [country] - 国家名称
+  /// 返回单个国家的详细数据 Map
+  ///
+  /// 抛出 [DioException] 当网络请求失败时
+  static Future<Map<String, dynamic>> getCountryData(String country) async {
+    try {
+      _logger.i('开始获取 $country 的详细数据...');
+
+      final response = await DioClient.dio.get(
+        '/countries/$country',
+      );
+
+      _logger.i('$country 详细数据获取成功');
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logger.e('获取 $country 详细数据失败: $e');
+      rethrow;
     }
   }
 }
