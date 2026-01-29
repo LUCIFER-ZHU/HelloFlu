@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/drawer.dart';
 
 /// 国家列表页面（Country List Screen）
 /// 显示所有受影响国家的COVID-19数据
@@ -13,41 +14,9 @@ class CountryListScreen extends StatelessWidget {
         title: const Text('受影响的国家'),
         centerTitle: true,
       ),
-      
+
       // 侧边栏导航
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'COVID-19 追踪器',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('首页'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.list),
-              title: const Text('国家列表'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const AppDrawer(),
 
       body: FutureBuilder<List<dynamic>>(
         future: ApiService.getAllCountriesData(),

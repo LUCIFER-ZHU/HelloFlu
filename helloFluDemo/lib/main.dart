@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/home.dart';
+import 'screens/test_demo.dart';
+import 'screens/global_stats.dart';
 import 'screens/country_list.dart';
 
 /// 应用程序入口
@@ -31,7 +32,9 @@ class MyApp extends StatelessWidget {
       // 简化的路由配置
       initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(),
+        '/': (context) => const TestDemoScreen(),
+        '/test-demo': (context) => const TestDemoScreen(),
+        '/global-stats': (context) => const GlobalStatsScreen(),
         '/countries': (context) => const CountryListScreen(),
       },
     );

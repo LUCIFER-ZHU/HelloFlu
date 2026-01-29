@@ -62,7 +62,29 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               // 关闭侧边栏并导航到主页
               Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/home');
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppColors.cardBackground,
+              child: Icon(
+                Icons.bar_chart,
+                color: AppColors.white,
+              ),
+            ),
+            title: Text(
+              '全球统计',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: 16,
+              ),
+            ),
+            onTap: () {
+              // 关闭侧边栏并导航到全球统计页
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/global-stats');
             },
           ),
 

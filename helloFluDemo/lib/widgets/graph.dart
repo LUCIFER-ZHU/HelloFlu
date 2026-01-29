@@ -210,16 +210,35 @@ class CovidGraph extends StatelessWidget {
   /// 计算Y轴刻度间隔
   double _calculateInterval(List<FlSpot> spots) {
     if (spots.isEmpty) return 1;
-    final values = spots.map((s) => s.y).toList();
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
-    final minValue = values.reduce((a, b) => a < b ? a : b);
-    final range = maxValue - minValue;
-    if (range == 0) return 1;
-    final intervals = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
-    for (final interval in intervals) {
-      if (range / interval < 10) return interval.toDouble();
+    
+    final minY = _getMinY(spots);
+    final maxY = _getMaxY(spots);
+    final range = maxY - minY;
+    
+    if (range <= 0) return 1;
+    
+    // 目标显示约5条横线
+    double interval = range / 5;
+    
+    // 获取数量级
+    double magnitude = 1;
+    while (interval >= 10) {
+      interval /= 10;
+      magnitude *= 10;
     }
-    return (range / 10).ceil().toDouble();
+    
+    // 规范化间隔 (1, 2, 5, 10)
+    if (interval <= 1) {
+      interval = 1;
+    } else if (interval <= 2) {
+      interval = 2;
+    } else if (interval <= 5) {
+      interval = 5;
+    } else {
+      interval = 10;
+    }
+    
+    return interval * magnitude;
   }
 
   /// 计算底部X轴刻度间隔

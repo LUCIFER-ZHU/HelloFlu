@@ -3,17 +3,18 @@ import '../services/api_service.dart';
 import '../config/constants.dart';
 import '../config/colors.dart';
 import '../widgets/graph.dart';
+import '../widgets/drawer.dart';
 
-/// 主页面（Home Screen）
-/// 显示全球COVID-19统计数据
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+/// 全球统计页面（Global Stats Screen）
+/// 显示全球COVID-19统计数据和图表
+class GlobalStatsScreen extends StatefulWidget {
+  const GlobalStatsScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<GlobalStatsScreen> createState() => _GlobalStatsScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _GlobalStatsScreenState extends State<GlobalStatsScreen> {
   late Future<Map<String, dynamic>> _globalDataFuture;
 
   // 缓存转换后的时间线数据，避免在build中重复计算
@@ -49,9 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _cachedCasesData = _transformTimelineData(timeline['cases']);
           _cachedDeathsData = _transformTimelineData(timeline['deaths']);
           _cachedRecoveredData = _transformTimelineData(timeline['recovered']);
-          print('数据转换完成，cases: ${_cachedCasesData?.length}, '
-              'deaths: ${_cachedDeathsData?.length}, '
-              'recovered: ${_cachedRecoveredData?.length}');
+          print('数据转换完成，cases: ${_cachedCasesData.length}, '
+              'deaths: ${_cachedDeathsData.length}, '
+              'recovered: ${_cachedRecoveredData.length}');
 
           return data;
         }
@@ -93,39 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       // 侧边栏导航
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'COVID-19 追踪器',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('首页'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.list),
-              title: const Text('国家列表'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/countries');
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const AppDrawer(),
 
       body: RefreshIndicator(
         onRefresh: () => _loadData(),
@@ -384,24 +353,24 @@ class _HomeScreenState extends State<HomeScreen> {
             title: '每日新增确诊病例',
             graphColor: AppColors.casesGraph,
           ),
-        // if (casesData.isNotEmpty) const SizedBox(height: 30),
+        if (casesData.isNotEmpty) const SizedBox(height: 30),
 
-        // // 死亡病例图表
-        // if (deathsData.isNotEmpty)
-        //   CovidGraph(
-        //     timelineData: deathsData,
-        //     title: '每日新增死亡病例',
-        //     graphColor: AppColors.deathsGraph,
-        //   ),
-        // if (deathsData.isNotEmpty) const SizedBox(height: 30),
+        // 死亡病例图表
+        if (deathsData.isNotEmpty)
+          CovidGraph(
+            timelineData: deathsData,
+            title: '每日新增死亡病例',
+            graphColor: AppColors.deathsGraph,
+          ),
+        if (deathsData.isNotEmpty) const SizedBox(height: 30),
 
-        // // 康复病例图表
-        // if (recoveredData.isNotEmpty)
-        //   CovidGraph(
-          //   timelineData: recoveredData,
-          //   title: '每日新增康复病例',
-          //   graphColor: AppColors.recoveredGraph,
-          // ),
+        // 康复病例图表
+        if (recoveredData.isNotEmpty)
+          CovidGraph(
+            timelineData: recoveredData,
+            title: '每日新增康复病例',
+            graphColor: AppColors.recoveredGraph,
+          ),
       ],
     );
   }
@@ -418,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return [];
     }
 
-    print('开始遍历 timelineData，条目数: ${(timelineData as Map).length}');
+    print('开始遍历 timelineData，条目数: ${timelineData.length}');
     final result = <Map<String, dynamic>>[];
     timelineData.forEach((key, value) {
       try {
