@@ -8,12 +8,16 @@ import '../screens/global_stats.dart';
 import '../services/api_service.dart';
 import '../notifiers/country_list_notifier.dart';
 import '../notifiers/global_stats_notifier.dart';
+import '../repositories/covid_repository.dart';
 
-/// ===== 应用配置 Providers =====
-
-/// 应用主题 Provider
-final themeProvider = Provider<ThemeData>((ref) {
-  return ThemeData(
+// ===== 仓库 Providers =====
+/// CovidRepository Provider
+/// 提供 COVID-19 数据仓库接口的 Provider
+final covidRepositoryProvider = Provider<CovidRepository>((ref) {
+  return CovidRepositoryImpl(
+    ref.watch(loggerProvider),
+  );
+});
     brightness: Brightness.dark,
     primarySwatch: Colors.blue,
     useMaterial3: true,
