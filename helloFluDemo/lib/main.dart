@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'config/app_config.dart';
+import 'core/network/dio_client.dart';
 import 'providers/providers.dart';
 
 /// 应用程序入口
@@ -12,10 +14,28 @@ Future<void> main() async {
   await dotenv.load(fileName: '.env');
 
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      child: const AppInitializer(),
     ),
   );
+}
+
+/// 应用初始化组件
+/// 负责配置全局服务和依赖
+class AppInitializer extends ConsumerWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 根据环境变量配置 DioClient 的 Logger
+    // 如果日志被禁用，则不传递 logger，DioClient 将不会记录网络日志
+    if (AppConfig.enableLogging) {
+      final logger = ref.watch(loggerProvider);
+      DioClient.configure(logger);
+    }
+
+    return const MyApp();
+  }
 }
 
 /// 主应用组件

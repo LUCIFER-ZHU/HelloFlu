@@ -1,12 +1,16 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
-
-import '../services/api_service.dart';
+import 'package:dio/dio.dart';
+import '../core/cache/cache_manager.dart';
+import '../core/errors/app_error.dart';
+import '../core/network/dio_client.dart';
+import '../config/app_config.dart';
 
 /// COVID-19 数据仓库接口
 ///
 /// 定义数据访问的抽象层
-/// 提供统一的数据获取方法，支持未来扩展（如本地缓存）
+/// 注：在当前项目中只有一个实现，接口和实现合并在一个文件中
+/// 如果未来需要多个实现（如 MockRepository, LocalRepository），
+/// 可以再将接口提取到单独文件
 abstract class CovidRepository {
   /// 获取全球COVID-19统计数据
   Future<Map<String, dynamic>> getGlobalData();
@@ -19,4 +23,186 @@ abstract class CovidRepository {
 
   /// 获取指定国家的详细数据
   Future<Map<String, dynamic>> getCountryData(String country);
+}
+
+/// COVID-19 数据仓库实现类
+///
+/// 负责调用 API 并返回数据
+/// 使用 DioClient 单例进行网络请求
+/// 使用 Logger 记录操作日志
+/// 集成缓存机制（内存 + 磁盘）提升性能
+/// 使用 AppError 进行统一的错误分类和处理
+class CovidRepositoryImpl implements CovidRepository {
+  /// Logger 实例
+  final Logger _logger;
+
+  /// 缓存管理器实例
+  final CacheManager _cacheManager;
+
+  /// 构造函数
+  /// 初始化缓存管理器
+  CovidRepositoryImpl(this._logger) : _cacheManager = CacheManager() {
+    // 延迟初始化缓存管理器（异步）
+    _cacheManager.initialize();
+  }
+
+  /// 获取全球COVID-19统计数据
+  ///
+  /// 先检查缓存，如果缓存未命中或已过期，则请求 API
+  @override
+  Future<Map<String, dynamic>> getGlobalData() async {
+    const cacheKey = 'global_data';
+
+    // 1. 检查缓存
+    final cached = _cacheManager.get<Map<String, dynamic>>(cacheKey);
+    if (cached != null) {
+      _logger.i('全球数据从缓存获取');
+      return cached;
+    }
+
+    // 2. 请求 API
+    _logger.i('开始获取全球数据');
+    try {
+      final response = await DioClient.dio.get(AppConfig.endpointGlobal);
+      final data = response.data as Map<String, dynamic>;
+
+      // 3. 保存到缓存
+      await _cacheManager.set(cacheKey, data);
+
+      _logger.i('全球数据获取成功，数据量: ${data.length}');
+      return data;
+    } on DioException catch (e) {
+      _logger.e('获取全球数据失败: $e');
+      throw ErrorHandler.handleDioError(e);
+    } catch (e) {
+      _logger.e('获取全球数据时发生未知错误: $e');
+      throw ErrorHandler.handleError(e);
+    }
+  }
+
+  /// 获取所有国家列表数据
+  ///
+  /// 先检查缓存，如果缓存未命中或已过期，则请求 API
+  @override
+  Future<List<dynamic>> getAllCountries() async {
+    const cacheKey = 'all_countries';
+
+    // 1. 检查缓存
+    final cached = _cacheManager.get<List<dynamic>>(cacheKey);
+    if (cached != null) {
+      _logger.i('国家列表从缓存获取，数量: ${cached.length}');
+      return cached;
+    }
+
+    // 2. 请求 API
+    _logger.i('开始获取国家列表');
+    try {
+      final response = await DioClient.dio.get(AppConfig.endpointCountries());
+      final data = response.data as List<dynamic>;
+
+      // 3. 保存到缓存
+      await _cacheManager.set(cacheKey, data);
+
+      _logger.i('国家列表获取成功，数量: ${data.length}');
+      return data;
+    } on DioException catch (e) {
+      _logger.e('获取国家列表失败: $e');
+      throw ErrorHandler.handleDioError(e);
+    } catch (e) {
+      _logger.e('获取国家列表时发生未知错误: $e');
+      throw ErrorHandler.handleError(e);
+    }
+  }
+
+  /// 获取指定国家的历史数据
+  ///
+  /// 先检查缓存，如果缓存未命中或已过期，则请求 API
+  @override
+  Future<Map<String, dynamic>> getHistoricalData(String country) async {
+    final cacheKey = 'historical_$country';
+
+    // 1. 检查缓存
+    final cached = _cacheManager.get<Map<String, dynamic>>(cacheKey);
+    if (cached != null) {
+      _logger.i('$country 历史数据从缓存获取');
+      return cached;
+    }
+
+    // 2. 请求 API
+    _logger.i('开始获取 $country 的历史数据');
+    try {
+      final response =
+          await DioClient.dio.get(AppConfig.endpointHistorical(country));
+      final data = response.data as Map<String, dynamic>;
+
+      // 3. 保存到缓存（国家历史数据不保存到磁盘，数据量较大）
+      await _cacheManager.set(cacheKey, data);
+
+      _logger.i('$country 历史数据获取成功');
+      return data;
+    } on DioException catch (e) {
+      _logger.e('获取 $country 历史数据失败: $e');
+      throw ErrorHandler.handleDioError(e);
+    } catch (e) {
+      _logger.e('获取 $country 历史数据时发生未知错误: $e');
+      throw ErrorHandler.handleError(e);
+    }
+  }
+
+  /// 获取指定国家的详细数据
+  ///
+  /// 先检查缓存，如果缓存未命中或已过期，则请求 API
+  @override
+  Future<Map<String, dynamic>> getCountryData(String country) async {
+    final cacheKey = 'country_$country';
+
+    // 1. 检查缓存
+    final cached = _cacheManager.get<Map<String, dynamic>>(cacheKey);
+    if (cached != null) {
+      _logger.i('$country 详细数据从缓存获取');
+      return cached;
+    }
+
+    // 2. 请求 API
+    _logger.i('开始获取 $country 的详细数据');
+    try {
+      final response =
+          await DioClient.dio.get('${AppConfig.endpointCountries()}/$country');
+      final data = response.data as Map<String, dynamic>;
+
+      // 3. 保存到缓存
+      await _cacheManager.set(cacheKey, data);
+
+      _logger.i('$country 详细数据获取成功');
+      return data;
+    } on DioException catch (e) {
+      _logger.e('获取 $country 详细数据失败: $e');
+      throw ErrorHandler.handleDioError(e);
+    } catch (e) {
+      _logger.e('获取 $country 详细数据时发生未知错误: $e');
+      throw ErrorHandler.handleError(e);
+    }
+  }
+
+  /// 清除所有缓存
+  /// 可用于用户手动刷新或退出登录时
+  Future<void> clearCache() async {
+    _logger.i('清除所有缓存');
+    await _cacheManager.clear();
+  }
+
+  /// 清除过期缓存
+  /// 可在应用启动或后台任务中调用
+  Future<void> clearExpiredCache() async {
+    _logger.i('清理过期缓存');
+    await _cacheManager.clearExpired();
+  }
+
+  /// 获取缓存统计信息（调试用）
+  Map<String, int> getCacheStats() {
+    return {
+      'memory': _cacheManager.memoryCacheCount,
+      'disk': _cacheManager.diskCacheCount,
+    };
+  }
 }

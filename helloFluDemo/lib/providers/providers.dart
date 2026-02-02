@@ -5,48 +5,25 @@ import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/country_list.dart';
 import '../screens/global_stats.dart';
-import '../services/api_service.dart';
 import '../notifiers/country_list_notifier.dart';
 import '../notifiers/global_stats_notifier.dart';
 import '../repositories/covid_repository.dart';
+import '../config/app_config.dart';
+
+// ===== 配置 Providers =====
+
+/// 主题 Provider
+final themeProvider = Provider<ThemeData>((ref) {
+  return AppConfig.darkTheme;
+});
 
 // ===== 仓库 Providers =====
 /// CovidRepository Provider
 /// 提供 COVID-19 数据仓库接口的 Provider
+/// 所有数据访问都通过此 Provider 进行
 final covidRepositoryProvider = Provider<CovidRepository>((ref) {
-  return CovidRepositoryImpl(
-    ref.watch(loggerProvider),
-  );
-});
-    brightness: Brightness.dark,
-    primarySwatch: Colors.blue,
-    useMaterial3: true,
-    scaffoldBackgroundColor: const Color(0xFF121212),
-    appBarTheme: const AppBarTheme(
-      centerTitle: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-    ),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF1E1E1E),
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Color(0xFFFFFFFF)),
-      bodyMedium: TextStyle(color: Color(0xFFFFFFFF)),
-      bodySmall: TextStyle(color: Color(0xFFFFFFFF)),
-      titleLarge: TextStyle(color: Color(0xFFFFFFFF), fontSize: 24),
-      titleMedium: TextStyle(color: Color(0xFFFFFFFF)),
-      titleSmall: TextStyle(color: Color(0xFFFFFFFF)),
-    ),
-    colorScheme: ColorScheme.dark(
-      primary: Colors.blue,
-      secondary: const Color(0xfff4796b),
-    ),
-  );
+  final logger = ref.watch(loggerProvider);
+  return CovidRepositoryImpl(logger);
 });
 
 /// 默认国家名称 Provider
@@ -62,8 +39,13 @@ final localeProvider = Provider<Locale>((ref) {
 /// ===== 服务 Providers（Riverpod 依赖注入） =====
 
 /// Logger Provider
+/// 根据环境变量 ENABLE_LOGGING 配置决定是否启用日志
 final loggerProvider = Provider<Logger>((ref) {
-  return Logger(
+  final isLoggingEnabled = AppConfig.enableLogging;
+
+    return Logger(
+    // 根据配置设置日志级别，生产环境可禁用日志
+    level: isLoggingEnabled ? Level.trace : Level.off,
     printer: PrettyPrinter(
       methodCount: 0,
       errorMethodCount: 5,
@@ -81,21 +63,15 @@ final sharedPreferencesProvider =
   return SharedPreferences.getInstance();
 });
 
-/// ===== API 相关 Providers =====
-
-/// API 服务 Provider（仅引用）
-final apiServiceProvider = Provider<void>((ref) {
-  return;
-});
-
 /// ===== 状态管理 Providers =====
 
 /// 全球统计数据 Provider
 final globalStatsProvider =
     StateNotifierProvider<GlobalStatsNotifier, AsyncValue<Map<String, dynamic>>>(
   (ref) {
+    final repository = ref.watch(covidRepositoryProvider);
     final logger = ref.watch(loggerProvider);
-    return GlobalStatsNotifier(logger);
+    return GlobalStatsNotifier(repository, logger);
   },
 );
 
@@ -103,28 +79,33 @@ final globalStatsProvider =
 final countriesProvider =
     StateNotifierProvider<CountryListNotifier, AsyncValue<List<dynamic>>>(
   (ref) {
+    final repository = ref.watch(covidRepositoryProvider);
     final logger = ref.watch(loggerProvider);
-    return CountryListNotifier(logger);
+    return CountryListNotifier(repository, logger);
   },
 );
 
 /// 国家历史数据 Provider
+/// 使用 Repository 层获取数据，不再直接调用 ApiService
 final historicalDataProvider =
     FutureProvider.family<Map<String, dynamic>, String>(
-  (ref, country) {
+  (ref, country) async {
+    final repository = ref.watch(covidRepositoryProvider);
     final logger = ref.watch(loggerProvider);
     logger.i('加载历史数据: $country');
-    return ApiService.getCountryHistoricalData(country);
+    return repository.getHistoricalData(country);
   },
 );
 
 /// 国家详细数据 Provider
+/// 使用 Repository 层获取数据，不再直接调用 ApiService
 final countryDataProvider =
     FutureProvider.family<Map<String, dynamic>, String>(
-  (ref, country) {
+  (ref, country) async {
+    final repository = ref.watch(covidRepositoryProvider);
     final logger = ref.watch(loggerProvider);
     logger.i('加载国家详情: $country');
-    return ApiService.getCountryData(country);
+    return repository.getCountryData(country);
   },
 );
 

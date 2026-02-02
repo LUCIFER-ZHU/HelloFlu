@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
-import '../services/api_service.dart';
 import '../repositories/covid_repository.dart';
 
 /// 全球统计数据状态管理器
@@ -30,10 +29,10 @@ class GlobalStatsNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>
   Map<String, dynamic>? _historicalData;
 
   /// 构造函数
-  GlobalStatsNotifier(this._repository) : super(const AsyncValue.loading());
-
-  /// 初始化时加载数据
-  loadGlobalData();
+  GlobalStatsNotifier(this._repository, this._logger)
+      : super(const AsyncValue.loading()) {
+    loadGlobalData();
+  }
 
   /// 加载全球统计数据
   Future<void> loadGlobalData() async {
@@ -63,7 +62,7 @@ class GlobalStatsNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>
   Future<void> refresh() async {
     await loadGlobalData();
     if (_historicalData != null) {
-      await loadHistoricalData(ref.read(defaultCountryProvider));
+      await loadHistoricalData('China');
     }
   }
 

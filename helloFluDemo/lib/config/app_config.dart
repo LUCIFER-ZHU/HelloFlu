@@ -110,28 +110,36 @@ class AppConfig {
   static bool get isProduction => environment == 'production';
 
   /// 是否显示调试信息（从环境变量读取）
+  /// 如果未设置，开发环境默认为 true，生产环境为 false
   static bool get debugMode {
-    final enableDebug = dotenv.env['ENABLE_DEBUG'];
-    if (enableDebug != null) return isDevelopment;
-    return enableDebug!.toLowerCase() == 'true';
+    final enableDebug = dotenv.env['ENABLE_DEBUG']?.toLowerCase();
+    if (enableDebug == null) return isDevelopment;
+    return enableDebug == 'true';
   }
 
   /// 是否启用日志（从环境变量读取）
+  /// 如果未设置，开发环境默认为 true，生产环境为 false
   static bool get enableLogging {
-    final enableLog = dotenv.env['ENABLE_LOGGING'];
-    if (enableLog != null) return isDevelopment;
-    return enableLog!.toLowerCase() == 'true';
+    final enableLog = dotenv.env['ENABLE_LOGGING']?.toLowerCase();
+    if (enableLog == null) return isDevelopment;
+    return enableLog == 'true';
   }
 
   // ===== 数据缓存配置 =====
 
   /// 缓存过期时间（分钟，从环境变量读取）
+  /// 默认值为 30 分钟
   static int get cacheExpirationMinutes {
     final duration = dotenv.env['CACHE_DURATION_MINUTES'];
     if (duration == null) return 30;
     return int.tryParse(duration) ?? 30;
   }
 
-  /// 是否启用缓存
-  static const bool enableCache = true;
+  /// 是否启用缓存（从环境变量读取）
+  /// 默认值为 true
+  static bool get enableCache {
+    final enable = dotenv.env['ENABLE_CACHE']?.toLowerCase();
+    if (enable == null) return true;
+    return enable == 'true';
+  }
 }

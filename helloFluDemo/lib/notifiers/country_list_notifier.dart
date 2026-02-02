@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
-import '../services/api_service.dart';
+import '../repositories/covid_repository.dart';
 
 /// 国家列表状态管理器
 ///
@@ -26,10 +26,10 @@ class CountryListNotifier extends StateNotifier<AsyncValue<List<dynamic>>> {
   final CovidRepository _repository;
 
   /// 构造函数
-  CountryListNotifier(this._repository) : super(const AsyncValue.loading());
-
-  /// 初始化时加载数据
-  loadCountries();
+  CountryListNotifier(this._repository, this._logger)
+      : super(const AsyncValue.loading()) {
+    loadCountries();
+  }
 
   /// 加载国家列表
   Future<void> loadCountries() async {
@@ -40,18 +40,9 @@ class CountryListNotifier extends StateNotifier<AsyncValue<List<dynamic>>> {
     });
   }
 
-  /// 加载国家列表（重命名以避免与 StateNotifierProvider 参数名冲突）
-  Future<void> fetchCountries() async {
-    state = const AsyncValue.loading();
-    _logger.i('开始加载国家列表');
-    state = await AsyncValue.guard(() async {
-      return _repository.getAllCountries();
-    });
-  }
-
   /// 刷新国家列表
   Future<void> refresh() async {
-    fetchCountries();
+    await loadCountries();
   }
 
   /// 搜索国家
@@ -74,73 +65,6 @@ class CountryListNotifier extends StateNotifier<AsyncValue<List<dynamic>>> {
 
   /// 重置搜索
   void reset() {
-    fetchCountries();
-  }
-}
-
-  /// 刷新国家列表
-  Future<void> refresh() async {
-    fetchCountries();
-  }
-  
-  /// 搜索国家
-  ///
-  /// [query] - 搜索关键词
-  /// 过滤国家名称包含关键词的国家
-  void search(String query) {
-    _logger.i('搜索国家: $query');
-    if (state is AsyncData) {
-      final countries = (state as AsyncData).value as List<dynamic>;
-      final filtered = countries
-          .where((country) =>
-              (country['country'] as String)
-                  .toLowerCase()
-                  .contains(query.toLowerCase()))
-          .toList();
-      state = AsyncValue.data(filtered);
-    }
-  }
-
-  /// 重置搜索
-  void reset() {
-    fetchCountries();
-  }
-}
-
-  /// 加载国家列表（重命名以避免与 StateNotifierProvider 参数名冲突）
-  Future<void> fetchCountries() async {
-    state = const AsyncValue.loading();
-    _logger.i('开始加载国家列表');
-    state = await AsyncValue.guard(() async {
-      return ApiService.getAllCountriesData();
-    });
-  }
-
-  /// 刷新国家列表
-  Future<void> refresh() async {
-    await fetchCountries();
-  }
-
-  /// 搜索国家
-  ///
-  /// [query] - 搜索关键词
-  /// 过滤国家名称包含关键词的国家
-  void search(String query) {
-    _logger.i('搜索国家: $query');
-    if (state is AsyncData) {
-      final countries = (state as AsyncData).value as List<dynamic>;
-      final filtered = countries
-          .where((country) =>
-              (country['country'] as String)
-                  .toLowerCase()
-                  .contains(query.toLowerCase()))
-          .toList();
-      state = AsyncValue.data(filtered);
-    }
-  }
-
-  /// 重置搜索
-  void reset() {
-    fetchCountries();
+    loadCountries();
   }
 }
