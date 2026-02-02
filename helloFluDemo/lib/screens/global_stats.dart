@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/colors.dart';
 import '../widgets/graph.dart';
 import '../widgets/drawer.dart';
-import '../providers/providers.dart';
+import '../router.dart';
+import '../notifiers/global_stats_notifier.dart';
 
 /// 全球统计页面（Global Stats Screen）
 /// 显示全球COVID-19统计数据和图表
@@ -27,7 +28,7 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
 
     // 延迟加载历史数据，避免阻塞 UI
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(globalStatsProvider.notifier).loadHistoricalData(defaultCountry);
+      ref.read(globalStatsProvider.notifier).loadAll(defaultCountry);
     });
   }
 
@@ -231,6 +232,10 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
 
   /// 构建图表区域
   Widget _buildChartsSection(Map<String, dynamic> historicalData) {
+    // 调试输出
+    debugPrint('historicalData keys: ${historicalData.keys.toList()}');
+    debugPrint('historicalData has timeline: ${historicalData.containsKey('timeline')}');
+    
     if (!historicalData.containsKey('timeline')) {
       return const Center(
         child: Padding(
@@ -243,8 +248,11 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
       );
     }
 
-    final timeline = historicalData['timeline'] as Map<String, dynamic>?;
-    if (timeline == null || timeline.isEmpty) {
+    final timeline = historicalData['timeline'];
+    debugPrint('timeline type: ${timeline.runtimeType}');
+    
+    final timelineMap = timeline as Map<String, dynamic>?;
+    if (timelineMap == null || timelineMap.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(20.0),
@@ -256,9 +264,9 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
       );
     }
 
-    final casesData = _transformTimelineData(timeline['cases'] as Map<String, dynamic>?);
-    final deathsData = _transformTimelineData(timeline['deaths'] as Map<String, dynamic>?);
-    final recoveredData = _transformTimelineData(timeline['recovered'] as Map<String, dynamic>?);
+    final casesData = _transformTimelineData(timelineMap['cases'] as Map<String, dynamic>?);
+    final deathsData = _transformTimelineData(timelineMap['deaths'] as Map<String, dynamic>?);
+    final recoveredData = _transformTimelineData(timelineMap['recovered'] as Map<String, dynamic>?);
 
     if (casesData.isEmpty && deathsData.isEmpty && recoveredData.isEmpty) {
       return const Center(
@@ -314,7 +322,13 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
 
   /// 转换时间线数据格式
   List<Map<String, dynamic>> _transformTimelineData(Map<String, dynamic>? timelineData) {
-    if (timelineData == null || timelineData.isEmpty) return [];
+    if (timelineData == null || timelineData.isEmpty) {
+      debugPrint('timelineData is null or empty');
+      return [];
+    }
+
+    debugPrint('timelineData entries count: ${timelineData.length}');
+    debugPrint('timelineData sample keys: ${timelineData.keys.take(3).toList()}');
 
     final result = <Map<String, dynamic>>[];
     timelineData.forEach((key, value) {
@@ -329,11 +343,15 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
             'date': DateTime(year, month, day),
             'value': (value as num).toInt(),
           });
+        } else {
+          debugPrint('Invalid date format: $key');
         }
       } catch (e) {
-        // 跳过无效数据
+        debugPrint('Error parsing timeline data: key=$key, value=$value, error=$e');
       }
     });
+    
+    debugPrint('Transformed data count: ${result.length}');
 
     // 按日期排序
     result.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));

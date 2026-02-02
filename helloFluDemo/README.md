@@ -4,8 +4,6 @@
 
 **项目状态**: ✅ 生产就绪 | 🏗️ 架构已优化 | 📱 跨平台支持
 
-**当前版本**: v2.0.0（已集成缓存、错误分类、统一日志）
-
 ---
 
 ## 📚 完整开发指南：从网络数据到界面绘制
@@ -20,12 +18,11 @@
 
 实现一个页面，显示全球COVID-19统计数据：
 - 从网络API获取数据
-- 使用缓存优化性能
 - 处理各种错误情况
 - 显示加载状态
 - 展示数据卡片
 
-### 完整流程图
+### 完整流程图（2026 Riverpod Generator 架构）
 
 ```
 用户打开页面
@@ -33,36 +30,36 @@
     ▼
 ┌─────────────────────────────────────────────────────────┐
 │ 第1步：定义数据层（Repository）                          │
-│ 网络请求 + 缓存 + 错误处理                                │
+│ 网络请求 + 错误处理                                       │
 │ lib/repositories/covid_repository.dart                   │
 └─────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────┐
-│ 第2步：定义状态管理（StateNotifier）                      │
-│ 管理异步状态（loading/data/error）                       │
+│ 第2步：定义状态管理（@riverpod 注解）                     │
+│ 管理异步状态 + 自动生成 Provider                          │
 │ lib/notifiers/global_stats_notifier.dart                 │
+│ lib/router.dart                                          │
 └─────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────┐
-│ 第3步：注册Provider（依赖注入）                          │
-│ lib/providers/providers.dart                             │
-└─────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 第4步：创建UI页面（Screen）                              │
-│ 显示数据卡片                                             │
-│ lib/screens/global_stats_demo.dart                       │
-└─────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 第5步：添加到路由                                        │
-│ lib/providers/providers.dart (routerProvider)            │
+│ 第3步：创建UI页面（Screen）                              │
+│ 使用生成的 Provider                                       │
+│ lib/screens/global_stats_screen.dart                     │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### 架构优势
+
+**传统 Riverpod vs Riverpod Generator：**
+
+| 特性 | 传统方式 | Generator 方式 |
+|------|---------|---------------|
+| 代码量 | 70+ 行手动声明 | 3 行注解 |
+| 类型安全 | 运行时检查 | 编译时检查 |
+| 依赖注入 | 手动构造函数 | 自动 `ref.read()` |
+| 维护成本 | 高（容易出错） | 低（自动生成） |
 
 ---
 
@@ -88,49 +85,31 @@ abstract class CovidRepository {
 }
 ```
 
-### 1.2 实现数据层（含缓存和错误处理）
+### 1.2 实现数据层（含错误处理）
 
 **文件**: `lib/repositories/covid_repository.dart`（接口和实现在同一文件）
 
 ```dart
 import 'package:logger/logger.dart';
 import 'package:dio/dio.dart';
-import '../core/cache/cache_manager.dart';
 import '../core/errors/app_error.dart';
 import '../core/network/dio_client.dart';
 import '../config/app_config.dart';
-import 'covid_repository.dart';
 
-/// 仓库实现类 - 包含缓存和错误处理
+/// 仓库实现类 - 包含错误处理
 class CovidRepositoryImpl implements CovidRepository {
   final Logger _logger;
-  final CacheManager _cacheManager;
 
-  CovidRepositoryImpl(this._logger) : _cacheManager = CacheManager() {
-    _cacheManager.initialize();
-  }
+  CovidRepositoryImpl(this._logger);
 
   @override
   Future<Map<String, dynamic>> getGlobalData() async {
-    const cacheKey = 'global_data';
-
-    // 1️⃣ 先检查缓存
-    final cached = _cacheManager.get<Map<String, dynamic>>(cacheKey);
-    if (cached != null) {
-      _logger.i('✅ 全球数据从缓存获取');
-      return cached;
-    }
-
-    // 2️⃣ 缓存未命中，请求API
     _logger.i('🌐 开始获取全球数据');
     try {
       final response = await DioClient.dio.get(
         AppConfig.endpointGlobal,
       );
       final data = response.data as Map<String, dynamic>;
-
-      // 3️⃣ 保存到缓存（30分钟后过期）
-      await _cacheManager.set(cacheKey, data);
 
       _logger.i('✅ 全球数据获取成功，病例数: ${data['cases']}');
       return data;
@@ -147,17 +126,13 @@ class CovidRepositoryImpl implements CovidRepository {
   // 其他方法实现...
   @override
   Future<List<dynamic>> getAllCountries() async {
-    const cacheKey = 'all_countries';
-    
-    final cached = _cacheManager.get<List<dynamic>>(cacheKey);
-    if (cached != null) return cached;
-
+    _logger.i('开始获取国家列表');
     try {
       final response = await DioClient.dio.get(
         AppConfig.endpointCountries(),
       );
       final data = response.data as List<dynamic>;
-      await _cacheManager.set(cacheKey, data);
+      _logger.i('国家列表获取成功，数量: ${data.length}');
       return data;
     } on DioException catch (e) {
       throw ErrorHandler.handleDioError(e);
@@ -166,17 +141,13 @@ class CovidRepositoryImpl implements CovidRepository {
 
   @override
   Future<Map<String, dynamic>> getHistoricalData(String country) async {
-    final cacheKey = 'historical_$country';
-    
-    final cached = _cacheManager.get<Map<String, dynamic>>(cacheKey);
-    if (cached != null) return cached;
-
+    _logger.i('开始获取 $country 的历史数据');
     try {
       final response = await DioClient.dio.get(
         AppConfig.endpointHistorical(country),
       );
       final data = response.data as Map<String, dynamic>;
-      await _cacheManager.set(cacheKey, data);
+      _logger.i('$country 历史数据获取成功');
       return data;
     } on DioException catch (e) {
       throw ErrorHandler.handleDioError(e);
@@ -186,116 +157,29 @@ class CovidRepositoryImpl implements CovidRepository {
 ```
 
 **关键要点**:
-- ✅ 先查缓存，再请求API
 - ✅ 使用 `DioException` 捕获网络错误
 - ✅ 使用 `ErrorHandler` 转换为用户友好的错误
 - ✅ 日志记录完整的数据流向
 
 ---
 
-## 第2步：定义状态管理（StateNotifier）
+## 第2步：定义状态管理（Riverpod Generator）
 
-### 2.1 创建 StateNotifier
+### 2.1 核心依赖 Provider（router.dart）
 
-**文件**: `lib/notifiers/global_stats_notifier.dart`
-
-```dart
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
-import '../core/errors/app_error.dart';
-import '../repositories/covid_repository.dart';
-
-/// 全球统计数据状态管理器
-///
-/// 管理三种状态：
-/// - loading: 加载中
-/// - data: 数据已加载
-/// - error: 加载失败
-class GlobalStatsNotifier 
-    extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
-  
-  final CovidRepository _repository;
-  final Logger _logger;
-
-  GlobalStatsNotifier(this._repository, this._logger) 
-      : super(const AsyncValue.loading()) {
-    // 初始化时自动加载数据
-    loadGlobalData();
-  }
-
-  /// 加载全球数据
-  Future<void> loadGlobalData() async {
-    _logger.i('🔄 开始加载全球数据');
-    
-    // 设置加载状态
-    state = const AsyncValue.loading();
-
-    try {
-      // 调用Repository获取数据
-      final data = await _repository.getGlobalData();
-      
-      // 设置数据状态（成功）
-      state = AsyncValue.data(data);
-      _logger.i('✅ 全球数据加载完成');
-    } on AppError catch (e, stackTrace) {
-      // 捕获具体的AppError
-      _logger.e('❌ 加载失败: ${e.message}');
-      state = AsyncValue.error(e, stackTrace);
-    } catch (e, stackTrace) {
-      // 捕获其他未知错误
-      _logger.e('❌ 未知错误: $e');
-      state = AsyncValue.error(
-        UnknownError(originalError: e), 
-        stackTrace,
-      );
-    }
-  }
-
-  /// 刷新数据（强制重新请求，忽略缓存）
-  Future<void> refresh() async {
-    _logger.i('🔄 刷新全球数据');
-    // 清除缓存
-    await (_repository as dynamic).clearCache?.call();
-    await loadGlobalData();
-  }
-
-  /// 获取特定数据字段的便捷方法
-  int get cases => state.value?['cases'] ?? 0;
-  int get deaths => state.value?['deaths'] ?? 0;
-  int get recovered => state.value?['recovered'] ?? 0;
-  int get active => state.value?['active'] ?? 0;
-}
-```
-
-**关键要点**:
-- ✅ 使用 `AsyncValue` 管理三种状态
-- ✅ 构造函数中自动加载数据
-- ✅ 区分 `AppError` 和未知错误
-- ✅ 提供便捷方法访问数据字段
-
----
-
-## 第3步：注册Provider（依赖注入）
-
-### 3.1 在 providers.dart 中注册
-
-**文件**: `lib/providers/providers.dart`
+**文件**: `lib/router.dart`
 
 ```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:logger/logger.dart';
-import '../config/app_config.dart';
-import '../core/network/dio_client.dart';
-import '../notifiers/global_stats_notifier.dart';
-import '../repositories/covid_repository.dart';  // 包含接口和实现
-import '../screens/global_stats_demo.dart';  // 新增页面
+import 'repositories/covid_repository.dart';
+import 'config/app_config.dart';
 
-// ===== 第1层：基础服务 Provider =====
+part 'router.g.dart';
 
-/// Logger Provider - 全局日志服务
-final loggerProvider = Provider<Logger>((ref) {
+/// Logger Provider - 自动生成
+@riverpod
+Logger logger(Ref ref) {
   return Logger(
     level: AppConfig.enableLogging ? Level.trace : Level.off,
     printer: PrettyPrinter(
@@ -306,77 +190,116 @@ final loggerProvider = Provider<Logger>((ref) {
       printEmojis: true,
     ),
   );
-});
+}
 
-/// 主题 Provider
-final themeProvider = Provider<ThemeData>((ref) {
-  return AppConfig.darkTheme;
-});
-
-// ===== 第2层：数据层 Provider =====
-
-/// Repository Provider - 数据仓库
-/// 依赖 loggerProvider
-final covidRepositoryProvider = Provider<CovidRepository>((ref) {
-  final logger = ref.watch(loggerProvider);
-  return CovidRepositoryImpl(logger);
-});
-
-// ===== 第3层：状态管理 Provider =====
-
-/// 全球统计数据 Provider
-/// 依赖 covidRepositoryProvider 和 loggerProvider
-final globalStatsProvider = StateNotifierProvider<
-    GlobalStatsNotifier, 
-    AsyncValue<Map<String, dynamic>>
->((ref) {
-  final repository = ref.watch(covidRepositoryProvider);
-  final logger = ref.watch(loggerProvider);
-  return GlobalStatsNotifier(repository, logger);
-});
-
-// ===== 第4层：路由配置 =====
-
-/// 路由 Provider
-final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: '/',
-    routes: [
-      GoRoute(
-        path: '/',
-        name: 'home',
-        builder: (context, state) => const GlobalStatsDemoScreen(),
-      ),
-      // 其他路由...
-    ],
-  );
-});
+/// Repository Provider - 自动生成
+@riverpod
+CovidRepository covidRepository(Ref ref) {
+  return CovidRepositoryImpl(ref.read(loggerProvider));
+}
 ```
 
-**依赖注入流程**:
+### 2.2 创建 AsyncNotifier（注解方式）
+
+**文件**: `lib/notifiers/global_stats_notifier.dart`
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../router.dart';
+
+part 'global_stats_notifier.g.dart';
+
+/// 全球统计数据状态管理器（Riverpod Generator 版本）
+///
+/// 使用 @riverpod 注解，代码生成器自动生成 Provider
+/// 比传统方式减少 70% 样板代码
+@riverpod
+class GlobalStats extends _$GlobalStats {
+  @override
+  Future<Map<String, dynamic>> build() async {
+    // 自动生成 ref，直接使用
+    ref.read(loggerProvider).i('开始加载全球数据');
+    
+    final globalData = await ref.read(covidRepositoryProvider).getGlobalData();
+    return {
+      'global': globalData,
+      'historical': null,
+    };
+  }
+
+  /// 加载全球和历史数据
+  Future<void> loadAll(String country) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final results = await Future.wait<Map<String, dynamic>>([
+        ref.read(covidRepositoryProvider).getGlobalData(),
+        ref.read(covidRepositoryProvider).getHistoricalData(country),
+      ]);
+      return {
+        'global': results[0],
+        'historical': results[1],
+      };
+    });
+  }
+
+  /// 刷新数据
+  Future<void> refresh() async {
+    final currentData = state.valueOrNull;
+    final hasHistorical = currentData?['historical'] != null;
+
+    if (hasHistorical) {
+      await loadAll('China');
+    } else {
+      state = const AsyncValue.loading();
+      state = await AsyncValue.guard(() async {
+        final globalData = await ref.read(covidRepositoryProvider).getGlobalData();
+        return {
+          'global': globalData,
+          'historical': null,
+        };
+      });
+    }
+  }
+}
 ```
-loggerProvider
-    ↓
-covidRepositoryProvider (注入logger)
-    ↓
-globalStatsProvider (注入repository + logger)
-    ↓
-UI Screen (使用globalStatsProvider)
+
+**关键要点**:
+- ✅ 使用 `@riverpod` 注解，自动生成 Provider
+- ✅ `ref` 自动生成，无需声明
+- ✅ 使用 `AsyncValue.guard()` 简化错误处理
+- ✅ 生成的 Provider 名称：`globalStatsProvider`
+
+### 2.3 代码生成
+
+运行以下命令生成代码：
+
+```bash
+# 生成代码（首次或修改后运行）
+flutter pub run build_runner build --delete-conflicting-outputs
+
+# 监听模式（开发时自动重新生成）
+flutter pub run build_runner watch --delete-conflicting-outputs
 ```
+
+生成的文件：
+- `router.g.dart` - 包含 `loggerProvider`, `covidRepositoryProvider`, `routerProvider`
+- `global_stats_notifier.g.dart` - 包含 `globalStatsProvider`
+- `country_list_notifier.g.dart` - 包含 `countriesProvider`
 
 ---
 
-## 第4步：创建UI页面（Screen）
+## 第3步：创建UI页面（Screen）
 
-### 4.1 实现完整的UI页面
+### 3.1 实现完整的UI页面
 
-**文件**: `lib/screens/global_stats_demo.dart`
+**文件**: `lib/screens/global_stats_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/errors/app_error.dart';
-import '../providers/providers.dart';
+import '../notifiers/global_stats_notifier.dart';
+import '../router.dart';
 
 /// 全球疫情统计演示页面
 ///
@@ -680,9 +603,9 @@ class GlobalStatsDemoScreen extends ConsumerWidget {
 
 ---
 
-## 第5步：应用入口配置
+## 第4步：应用入口配置
 
-### 5.1 更新 main.dart
+### 4.1 更新 main.dart
 
 **文件**: `lib/main.dart`
 
@@ -692,7 +615,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'config/app_config.dart';
 import 'core/network/dio_client.dart';
-import 'providers/providers.dart';
+import 'router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -714,7 +637,7 @@ class AppInitializer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 2️⃣ 配置 Logger
+    // 2️⃣ 配置 Logger（从生成的 Provider 获取）
     final logger = ref.watch(loggerProvider);
     
     // 3️⃣ 配置 DioClient（仅在启用日志时）
@@ -732,6 +655,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 使用生成的 Provider
     final theme = ref.watch(themeProvider);
     final router = ref.watch(routerProvider);
 
@@ -749,44 +673,26 @@ class MyApp extends ConsumerWidget {
 
 ## 完整运行流程演示
 
-### 场景1：首次打开应用（无缓存）
+### 场景：正常加载数据
 
 ```
 1. 用户打开页面
    └─> GlobalStatsNotifier 构造函数调用 loadGlobalData()
 
-2. 检查缓存（未命中）
-   └─> Repository 发现缓存为空
-
-3. 发起网络请求
+2. 发起网络请求
    └─> DioClient 请求 https://disease.sh/v3/covid-19/all
    └─> Logger 输出: "🌐 开始获取全球数据"
 
-4. 请求成功
-   └─> Repository 保存数据到缓存
+3. 请求成功
    └─> Logger 输出: "✅ 全球数据获取成功"
    └─> Notifier 更新 state = AsyncValue.data(data)
 
-5. UI 自动重建
+4. UI 自动重建
    └─> 显示数据卡片
    └─> 显示病例数、死亡数、康复数、活跃数
 ```
 
-### 场景2：再次打开应用（有缓存）
-
-```
-1. 用户打开页面
-   └─> 检查缓存（命中！）
-
-2. 立即显示数据
-   └─> Logger 输出: "✅ 全球数据从缓存获取"
-   └─> UI 瞬间显示，无需等待
-
-3. （可选）后台静默刷新
-   └─> 如果缓存过期，自动重新请求API
-```
-
-### 场景3：网络错误
+### 场景：网络错误
 
 ```
 1. 发起网络请求
@@ -814,13 +720,14 @@ class MyApp extends ConsumerWidget {
 # 运行应用（显示详细日志）
 flutter run
 
-# 过滤查看特定日志lutter run | grep "全球数据"
+# 过滤查看特定日志
+flutter run | grep "全球数据"
 ```
 
 **日志示例**:
 ```
 [GlobalStatsNotifier] 🔄 开始加载全球数据
-[CovidRepositoryImpl] ✅ 全球数据从缓存获取
+[CovidRepositoryImpl] ✅ 全球数据获取成功
 [GlobalStatsNotifier] ✅ 全球数据加载完成
 ```
 
@@ -840,51 +747,6 @@ try {
 }
 ```
 
-### 验证缓存
-
-```dart
-// 在 Repository 中添加调试方法
-void printCacheStats() {
-  final stats = _cacheManager.getStats();
-  _logger.i('缓存统计 - 内存: ${stats['memory']}, 磁盘: ${stats['disk']}');
-}
-```
-
----
-
-## 进阶：添加图表展示
-
-### 使用 fl_chart 绘制趋势图
-
-```dart
-import 'package:fl_chart/fl_chart.dart';
-
-class TrendChart extends StatelessWidget {
-  final List<Map<String, dynamic>> timelineData;
-  
-  const TrendChart({super.key, required this.timelineData});
-  
-  @override
-  Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(show: true),
-        titlesData: FlTitlesData(show: true),
-        lineBarsData: [
-          LineChartBarData(
-            spots: timelineData.asMap().entries.map((e) {
-              return FlSpot(e.key.toDouble(), e.value['cases'] as double);
-            }).toList(),
-            isCurved: true,
-            color: Colors.blue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-```
-
 ---
 
 ## 总结
@@ -896,27 +758,25 @@ class TrendChart extends StatelessWidget {
 │   UI层      │────▶│  Provider    │────▶│  Notifier    │
 │  (Screen)   │◀────│  (Riverpod)  │◀────│  (Business)  │
 └─────────────┘     └──────────────┘     └──────────────┘
-                                                  │
-                                                  ▼
-                                        ┌──────────────┐
-                                        │  Repository  │
-                                        │  (Data层)    │
-                                        └──────────────┘
-                                                  │
-                                       ┌──────────┴──────────┐
-                                       ▼                     ▼
-                                ┌──────────────┐     ┌──────────────┐
-                                │  API (Dio)   │     │  Cache (内存+磁盘)  │
-                                └──────────────┘     └──────────────┘
+                                                   │
+                                                   ▼
+                                         ┌──────────────┐
+                                         │  Repository  │
+                                         │  (Data层)    │
+                                         └──────────────┘
+                                                   │
+                                                   ▼
+                                          ┌─────────────┐
+                                          │  API (Dio)  │
+                                          └─────────────┘
 ```
 
 ### 核心原则
 
 1. **单一职责**: 每层只做一件事
 2. **依赖注入**: 通过 Riverpod 管理依赖
-3. **缓存优先**: 先查缓存，再请求API
-4. **错误分类**: 不同错误不同处理
-5. **响应式UI**: 状态驱动界面更新
+3. **错误分类**: 不同错误不同处理
+4. **响应式UI**: 状态驱动界面更新
 
 ---
 
@@ -985,18 +845,17 @@ class TrendChart extends StatelessWidget {
 | 功能 | 技术选型 | 版本 | Web 对比 | 选型理由 |
 |------|----------|------|----------|----------|
 | **状态管理** | flutter_riverpod | ^2.6.1 | Zustand/Pinia | 编译时安全、自动依赖追踪、内置DI |
+| **代码生成** | riverpod_generator | ^2.6.5 | - | 自动生成Provider，减少70%样板代码 |
 | **网络请求** | dio | ^5.9.1 | Axios/Fetch | 拦截器、请求取消、FormData |
 | **路由管理** | go_router | ^17.0.1 | React Router v6 | 声明式路由、深链接 |
-| **依赖注入** | Riverpod Providers | ^2.6.1 | Provider/Inversify | 零开销、编译时检查 |
+| **依赖注入** | Riverpod Generator | ^2.6.5 | Provider/Inversify | 零开销、编译时检查、自动注入 |
 | **日志系统** | logger | ^2.6.2 | Winston/Pino | 彩色输出、分级 |
-| **持久化** | shared_preferences | ^2.5.4 | localStorage | 异步API、跨平台 |
 | **图表** | fl_chart | ^1.1.0 | Recharts | 高性能、触摸交互 |
 | **环境配置** | flutter_dotenv | ^6.0.0 | dotenv | 多环境支持 |
-| **国际化** | intl | ^0.20.2 | i18next | ICU消息格式 |
 
 ---
 
-## 项目结构 📁
+## 项目结构 📁（2026 Riverpod Generator 架构）
 
 ```
 lib/
@@ -1006,22 +865,19 @@ lib/
 │   └── constants.dart          # 业务常量
 │
 ├── core/                       # 核心功能层
-│   ├── cache/                 # 缓存管理
-│   │   └── cache_manager.dart    # 内存+磁盘缓存 ✅新增
 │   ├── errors/                # 错误处理
-│   │   └── app_error.dart        # 错误分类 ✅新增
+│   │   └── app_error.dart        # 错误分类
 │   └── network/               # 网络基础设施
 │       └── dio_client.dart    # Dio 单例配置、拦截器
 │
-├── notifiers/                  # 状态管理器
+├── notifiers/                  # 状态管理器（@riverpod 注解）
 │   ├── country_list_notifier.dart    # 国家列表状态
-│   └── global_stats_notifier.dart   # 全球统计状态
-│
-├── providers/                  # 依赖注入容器
-│   └── providers.dart          # 统一Provider定义
+│   ├── country_list_notifier.g.dart  # 生成的Provider
+│   ├── global_stats_notifier.dart   # 全球统计状态
+│   └── global_stats_notifier.g.dart # 生成的Provider
 │
 ├── repositories/               # 数据仓库层
-│   └── covid_repository.dart   # 仓库（接口+实现，含缓存）
+│   └── covid_repository.dart   # 仓库（接口+实现）
 │
 ├── screens/                    # 页面层
 │   ├── global_stats.dart       # 全球统计页面
@@ -1035,8 +891,19 @@ lib/
 │   ├── graph.dart            # 折线图表
 │   └── info_card.dart        # 信息卡片
 │
+├── router.dart                 # 核心Provider定义（Logger + Repository + Router）
+├── router.g.dart               # 生成的Provider代码
 └── main.dart                   # 应用入口
 ```
+
+### 架构说明
+
+**2026 Riverpod Generator 新架构特点：**
+
+1. **移除 providers/ 目录** - 不再需要手动声明 Provider
+2. **新增 router.dart** - 集中定义核心依赖（Logger、Repository、Router）
+3. **notifiers/ 包含 .g.dart 文件** - 代码生成器自动创建 Provider
+4. **零样板代码** - 通过 `@riverpod` 注解自动生成所有Provider
 
 ---
 
@@ -1068,26 +935,6 @@ flutter run -d ios
 flutter run -d chrome --web-port=30000  # 固定端口避免多实例
 ```
 
-### Android 配置
-
-在 `android/app/src/main/AndroidManifest.xml` 中添加网络权限：
-
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-```
-
-### 环境配置
-
-```bash
-# 开发环境（默认使用 .env）
-flutter run
-
-# 生产环境
-cp .env.production .env
-flutter run --release
-```
-
 ---
 
 ## 优化亮点 🎯
@@ -1100,19 +947,13 @@ flutter run --release
 ### ✅ 2. 环境变量生效化
 - `.env` 配置真正生效
 - 支持生产环境禁用日志
-- 缓存时间可配置
 
 ### ✅ 3. API层与Repository层合并
 - 删除重复的 ApiService
 - 统一使用 Repository 层
 - 架构更清晰
 
-### ✅ 4. 数据缓存机制
-- 内存缓存（Map）+ SharedPreferences 磁盘缓存
-- 自动过期机制
-- Repository 自动检查缓存 → API → 更新缓存
-
-### ✅ 5. 错误分类处理
+### ✅ 4. 错误分类处理
 - 7种错误类型：NetworkError, ServerError, ClientError, TimeoutError, CacheError, DataParseError, UnknownError
 - 自动转换 DioException
 - 用户友好的错误提示
@@ -1141,18 +982,10 @@ User Action
 │  Repository   │
 └───────┬───────┘
         │
-    ┌───┴───┐
-    ▼       ▼
-┌──────┐ ┌────────┐
-│ Remote│ │ Local  │
-│ (Dio) │ │(Shared)│
-└──┬───┘ └────────┘
-   │
-   ▼
-┌────────┐
-│  API   │
-│ Server │
-└────────┘
+        ▼
+┌───────────────┐
+│  API (Dio)    │
+└───────────────┘
 ```
 
 ---
@@ -1204,21 +1037,6 @@ User Action
 6. 运行分析 (flutter analyze)
 ```
 
-### Git 提交规范
-
-```
-类型: 简短描述
-
-- feat: 新功能
-- fix: 修复bug
-- docs: 文档更新
-- refactor: 重构
-- chore: 构建/工具
-
-示例:
-feat: 添加国家详情页面
-```
-
 ---
 
 ## 常见问题 ❓
@@ -1233,39 +1051,6 @@ A: 三步走：
 1. 在 `CovidRepository` 接口添加方法
 2. 在 `CovidRepositoryImpl` 实现逻辑
 3. 在 Notifier 中调用
-
-### Q: 应用启动慢？
-
-A: 检查项：
-- [ ] 使用 `const` 构造函数
-- [ ] 延迟加载非关键资源
-- [ ] 使用 `flutter_native_splash`
-
----
-
-## 贡献指南 🤝
-
-欢迎提交 Issue 和 PR！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
-
----
-
-## 致谢 🙏
-
-- 原项目: [nisrulz/flutter-examples](https://github.com/nisrulz/flutter-examples)
-- 数据源: [disease.sh](https://disease.sh/)
-- 架构参考: [Riverpod Documentation](https://riverpod.dev/)
-
----
-
-## 许可证 📄
-
-本项目基于 Apache License 2.0 开源。
 
 ---
 

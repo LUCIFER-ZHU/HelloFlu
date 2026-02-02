@@ -18,9 +18,10 @@ dependencies:
 
   # ===== 状态管理 =====
   # Riverpod - 现代状态管理方案（含依赖注入）
-  # 使用固定版本号（暂时）
-  flutter_riverpod: 2.6.1
-  riverpod_annotation: 2.6.1
+  # 使用 Generator 注解版本
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  hooks_riverpod: ^2.6.1
 
   # ===== 路由 =====
   # GoRouter - 声明式路由
@@ -55,16 +56,14 @@ dev_dependencies:
 
   # ===== 代码生成 =====
   # Build Runner - 代码生成工具
-  build_runner: ^2.10.5
+  build_runner: ^2.4.15
+  
+  # Riverpod Generator - Riverpod 代码生成器
+  riverpod_generator: ^2.6.5
   
   # ===== 代码规范 =====
   # Flutter Lints - 官方 lint 规则
   flutter_lints: ^6.0.0
-  
-  # JSON 序列化（新增用于类型安全的数据模型）
-  json_annotation: ^4.10.0
-  json_serializable: ^6.10.0
-  mockito: ^5.6.3
 
 flutter:
   uses-material-design: true

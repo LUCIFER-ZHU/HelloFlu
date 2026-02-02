@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../config/colors.dart';
 
 /// 自定义侧边栏组件（Drawer）
@@ -62,7 +63,7 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               // 关闭侧边栏并导航到主页
               Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/');
+              context.go('/');
             },
           ),
 
@@ -84,7 +85,7 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               // 关闭侧边栏并导航到全球统计页
               Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/global-stats');
+              context.go('/global-stats');
             },
           ),
 
@@ -106,7 +107,7 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               // 关闭侧边栏并导航到国家列表页
               Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/countries');
+              context.go('/countries');
             },
           ),
 

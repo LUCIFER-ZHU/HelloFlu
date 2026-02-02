@@ -27,7 +27,7 @@ class AppConfig {
 
   /// 国家历史数据端点
   static String endpointHistorical(String country) =>
-      '$apiBaseUrl/countries/$country';
+      '$apiBaseUrl/historical/$country';
 
   /// 国家数据端点
   static const String globalDataEndpoint = '/all';

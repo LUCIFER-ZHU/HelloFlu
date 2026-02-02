@@ -1,58 +1,30 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
-import '../repositories/covid_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../router.dart';
 
-/// 国家列表状态管理器
-///
-/// 负责管理国家列表的数据状态
-/// 支持加载、刷新、搜索等功能
-/// 使用 Riverpod 的 Provider 参数注入 Logger 和 CovidRepository
-/// SharedPreferences 在内部异步获取
-///
-/// Web 对比：类似 Zustand 的 store 或 Redux 的 reducer
-///
-/// 使用方式：
-/// ```dart
-/// final repository = ref.watch(covidRepositoryProvider);
-/// final notifier = ref.watch(countriesProvider.notifier);
-/// await notifier.refresh();
-/// await notifier.search('China');
-/// ```
-class CountryListNotifier extends StateNotifier<AsyncValue<List<dynamic>>> {
-  /// Logger 实例
-  final Logger _logger;
+part 'country_list_notifier.g.dart';
 
-  /// Repository 实例（注入而非硬编码）
-  final CovidRepository _repository;
-
-  /// 构造函数
-  CountryListNotifier(this._repository, this._logger)
-      : super(const AsyncValue.loading()) {
-    loadCountries();
-  }
-
-  /// 加载国家列表
-  Future<void> loadCountries() async {
-    state = const AsyncValue.loading();
-    _logger.i('开始加载国家列表');
-    state = await AsyncValue.guard(() async {
-      return _repository.getAllCountries();
-    });
+/// 国家列表状态管理器（Riverpod Generator 版本）
+@riverpod
+class Countries extends _$Countries {
+  @override
+  Future<List<dynamic>> build() async {
+    ref.read(loggerProvider).i('开始加载国家列表');
+    return ref.read(covidRepositoryProvider).getAllCountries();
   }
 
   /// 刷新国家列表
   Future<void> refresh() async {
-    await loadCountries();
+    ref.read(loggerProvider).i('刷新国家列表');
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      return ref.read(covidRepositoryProvider).getAllCountries();
+    });
   }
 
   /// 搜索国家
-  ///
-  /// [query] - 搜索关键词
-  /// 过滤国家名称包含关键词的国家
   void search(String query) {
-    _logger.i('搜索国家: $query');
-    if (state is AsyncData) {
-      final countries = (state as AsyncData).value as List<dynamic>;
+    ref.read(loggerProvider).i('搜索国家: $query');
+    if (state case AsyncData(value: final countries)) {
       final filtered = countries
           .where((country) =>
               (country['country'] as String)
@@ -64,7 +36,10 @@ class CountryListNotifier extends StateNotifier<AsyncValue<List<dynamic>>> {
   }
 
   /// 重置搜索
-  void reset() {
-    loadCountries();
+  Future<void> reset() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      return ref.read(covidRepositoryProvider).getAllCountries();
+    });
   }
 }
