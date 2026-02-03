@@ -2,51 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:logger/logger.dart';
-import '../config/app_config.dart';
-import '../repositories/covid_repository.dart';
 import '../screens/global_stats.dart';
 import '../screens/country_list.dart';
 
 part 'router.g.dart';
 
-/// Logger Provider（Generated）
-@riverpod
-Logger logger(Ref ref) {
-  final isLoggingEnabled = AppConfig.enableLogging;
-
-  return Logger(
-    level: isLoggingEnabled ? Level.trace : Level.off,
-    printer: PrettyPrinter(
-      methodCount: 0,
-      errorMethodCount: 5,
-      lineLength: 50,
-      colors: true,
-      printEmojis: true,
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-    ),
-  );
-}
-
-/// CovidRepository Provider（Generated）
-@riverpod
-CovidRepository covidRepository(Ref ref) {
-  return CovidRepositoryImpl(ref.read(loggerProvider));
-}
-
-/// 主题 Provider（Generated）
-@riverpod
-ThemeData theme(Ref ref) {
-  return AppConfig.darkTheme;
-}
-
-/// 默认国家 Provider（Generated）
-@riverpod
-String defaultCountry(Ref ref) {
-  return 'China';
-}
-
 /// 路由配置 Provider（Generated）
+/// 
+/// 提供应用路由配置
+/// 包含所有页面路由定义和错误页面处理
 @riverpod
 GoRouter router(Ref ref) {
   return GoRouter(

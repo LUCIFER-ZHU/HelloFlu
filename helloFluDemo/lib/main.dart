@@ -4,6 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'config/app_config.dart';
 import 'core/network/dio_client.dart';
+import 'providers/core_providers.dart';
+import 'providers/config_providers.dart';
 import 'router.dart';
 
 /// 应用程序入口

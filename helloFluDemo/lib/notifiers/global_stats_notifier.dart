@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../router.dart';
+import '../providers/core_providers.dart';
 
 part 'global_stats_notifier.g.dart';
 

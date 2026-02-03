@@ -39,7 +39,7 @@
 │ 第2步：定义状态管理（@riverpod 注解）                     │
 │ 管理异步状态 + 自动生成 Provider                          │
 │ lib/notifiers/global_stats_notifier.dart                 │
-│ lib/router.dart                                          │
+│ lib/providers/core_providers.dart                        │
 └─────────────────────────────────────────────────────────┘
     │
     ▼
@@ -165,17 +165,18 @@ class CovidRepositoryImpl implements CovidRepository {
 
 ## 第2步：定义状态管理（Riverpod Generator）
 
-### 2.1 核心依赖 Provider（router.dart）
+### 2.1 核心依赖 Provider（providers/）
 
-**文件**: `lib/router.dart`
+**文件**: `lib/providers/core_providers.dart`
 
 ```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:logger/logger.dart';
-import 'repositories/covid_repository.dart';
-import 'config/app_config.dart';
+import '../config/app_config.dart';
+import '../repositories/covid_repository.dart';
 
-part 'router.g.dart';
+part 'core_providers.g.dart';
 
 /// Logger Provider - 自动生成
 @riverpod
@@ -199,13 +200,36 @@ CovidRepository covidRepository(Ref ref) {
 }
 ```
 
+**文件**: `lib/providers/config_providers.dart`
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../config/app_config.dart';
+
+part 'config_providers.g.dart';
+
+/// 主题 Provider
+@riverpod
+ThemeData theme(Ref ref) {
+  return AppConfig.darkTheme;
+}
+
+/// 默认国家 Provider
+@riverpod
+String defaultCountry(Ref ref) {
+  return AppConfig.defaultCountry;
+}
+```
+
 ### 2.2 创建 AsyncNotifier（注解方式）
 
 **文件**: `lib/notifiers/global_stats_notifier.dart`
 
 ```dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../router.dart';
+import '../providers/core_providers.dart';
 
 part 'global_stats_notifier.g.dart';
 
@@ -219,7 +243,7 @@ class GlobalStats extends _$GlobalStats {
   Future<Map<String, dynamic>> build() async {
     // 自动生成 ref，直接使用
     ref.read(loggerProvider).i('开始加载全球数据');
-    
+
     final globalData = await ref.read(covidRepositoryProvider).getGlobalData();
     return {
       'global': globalData,
@@ -282,7 +306,9 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 ```
 
 生成的文件：
-- `router.g.dart` - 包含 `loggerProvider`, `covidRepositoryProvider`, `routerProvider`
+- `providers/core_providers.g.dart` - 包含 `loggerProvider`, `covidRepositoryProvider`
+- `providers/config_providers.g.dart` - 包含 `themeProvider`, `defaultCountryProvider`
+- `router.g.dart` - 包含 `routerProvider`
 - `global_stats_notifier.g.dart` - 包含 `globalStatsProvider`
 - `country_list_notifier.g.dart` - 包含 `countriesProvider`
 
@@ -299,7 +325,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/errors/app_error.dart';
 import '../notifiers/global_stats_notifier.dart';
-import '../router.dart';
+import '../providers/config_providers.dart';
 
 /// 全球疫情统计演示页面
 ///
@@ -615,14 +641,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'config/app_config.dart';
 import 'core/network/dio_client.dart';
+import 'providers/core_providers.dart';
+import 'providers/config_providers.dart';
 import 'router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 1️⃣ 加载环境变量
   await dotenv.load(fileName: '.env');
-  
+
   runApp(
     const ProviderScope(
       child: AppInitializer(),
@@ -639,12 +667,12 @@ class AppInitializer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 2️⃣ 配置 Logger（从生成的 Provider 获取）
     final logger = ref.watch(loggerProvider);
-    
+
     // 3️⃣ 配置 DioClient（仅在启用日志时）
     if (AppConfig.enableLogging) {
       DioClient.configure(logger);
     }
-    
+
     return const MyApp();
   }
 }
@@ -876,6 +904,12 @@ lib/
 │   ├── global_stats_notifier.dart   # 全球统计状态
 │   └── global_stats_notifier.g.dart # 生成的Provider
 │
+├── providers/                  # 依赖注入层（Riverpod Generator）
+│   ├── core_providers.dart     # 核心服务（Logger + Repository）
+│   ├── core_providers.g.dart   # 生成的Provider代码
+│   ├── config_providers.dart   # 配置Provider（Theme + DefaultCountry）
+│   └── config_providers.g.dart # 生成的Provider代码
+│
 ├── repositories/               # 数据仓库层
 │   └── covid_repository.dart   # 仓库（接口+实现）
 │
@@ -891,8 +925,8 @@ lib/
 │   ├── graph.dart            # 折线图表
 │   └── info_card.dart        # 信息卡片
 │
-├── router.dart                 # 核心Provider定义（Logger + Repository + Router）
-├── router.g.dart               # 生成的Provider代码
+├── router.dart                 # 路由配置
+├── router.g.dart               # 生成的路由代码
 └── main.dart                   # 应用入口
 ```
 
@@ -900,10 +934,16 @@ lib/
 
 **2026 Riverpod Generator 新架构特点：**
 
-1. **移除 providers/ 目录** - 不再需要手动声明 Provider
-2. **新增 router.dart** - 集中定义核心依赖（Logger、Repository、Router）
+1. **新增 providers/ 目录** - 按职责分离 Provider
+   - `core_providers.dart` - 核心服务层（Logger、Repository）
+   - `config_providers.dart` - 配置层（Theme、DefaultCountry）
+2. **router.dart 职责单一** - 只负责路由配置
 3. **notifiers/ 包含 .g.dart 文件** - 代码生成器自动创建 Provider
 4. **零样板代码** - 通过 `@riverpod` 注解自动生成所有Provider
+5. **清晰的依赖关系**：
+   - Notifiers → `core_providers.dart`（logger、repository）
+   - Screens → `config_providers.dart`（theme、config）
+   - main.dart → 按需组合各层 Provider
 
 ---
 
@@ -1028,13 +1068,17 @@ User Action
         ↓
 2. 创建 StateNotifier (notifiers/)
         ↓
-3. 注册 Provider (providers/providers.dart)
+3. 如果需要新的服务依赖 → 添加到 providers/core_providers.dart
         ↓
-4. 实现 UI 页面 (screens/)
+4. 如果需要新的配置项 → 添加到 providers/config_providers.dart
         ↓
-5. 添加路由 (providers/providers.dart routerProvider)
+5. 实现 UI 页面 (screens/)
         ↓
-6. 运行分析 (flutter analyze)
+6. 添加路由 (router.dart)
+        ↓
+7. 运行代码生成 (flutter pub run build_runner build)
+        ↓
+8. 运行分析 (flutter analyze)
 ```
 
 ---

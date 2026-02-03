@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/colors.dart';
 import '../widgets/graph.dart';
 import '../widgets/drawer.dart';
-import '../router.dart';
+import '../providers/config_providers.dart';
 import '../notifiers/global_stats_notifier.dart';
 
 /// 全球统计页面（Global Stats Screen）
