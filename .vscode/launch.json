@@ -21,8 +21,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}/helloFluDemo",
       "args": [
-        // Web 固定端口（避免重复打开 Chrome）
-        "--web-port=30000"
+        "--dart-define=ENVIRONMENT=development"
       ]
     },
 
