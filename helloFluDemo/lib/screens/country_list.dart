@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../notifiers/country_list_notifier.dart';
+import '../providers/country_list_notifier.dart';
 import '../widgets/drawer.dart';
 import 'country_search.dart';
 

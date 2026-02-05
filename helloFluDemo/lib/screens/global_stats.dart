@@ -4,7 +4,7 @@ import '../config/colors.dart';
 import '../widgets/graph.dart';
 import '../widgets/drawer.dart';
 import '../providers/config_providers.dart';
-import '../notifiers/global_stats_notifier.dart';
+import '../providers/global_stats_notifier.dart';
 
 /// 全球统计页面（Global Stats Screen）
 /// 显示全球COVID-19统计数据和图表

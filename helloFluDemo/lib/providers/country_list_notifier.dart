@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../providers/core_providers.dart';
+import 'core_providers.dart';
 
 part 'country_list_notifier.g.dart';
 

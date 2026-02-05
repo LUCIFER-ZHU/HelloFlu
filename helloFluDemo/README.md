@@ -38,7 +38,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │ 第2步：定义状态管理（@riverpod 注解）                     │
 │ 管理异步状态 + 自动生成 Provider                          │
-│ lib/notifiers/global_stats_notifier.dart                 │
+│ lib/providers/global_stats_notifier.dart                 │
 │ lib/providers/core_providers.dart                        │
 └─────────────────────────────────────────────────────────┘
     │
@@ -225,11 +225,11 @@ String defaultCountry(Ref ref) {
 
 ### 2.2 创建 AsyncNotifier（注解方式）
 
-**文件**: `lib/notifiers/global_stats_notifier.dart`
+**文件**: `lib/providers/global_stats_notifier.dart`
 
 ```dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../providers/core_providers.dart';
+import 'core_providers.dart';
 
 part 'global_stats_notifier.g.dart';
 
@@ -308,9 +308,9 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 生成的文件：
 - `providers/core_providers.g.dart` - 包含 `loggerProvider`, `covidRepositoryProvider`
 - `providers/config_providers.g.dart` - 包含 `themeProvider`, `defaultCountryProvider`
+- `providers/global_stats_notifier.g.dart` - 包含 `globalStatsProvider`
+- `providers/country_list_notifier.g.dart` - 包含 `countriesProvider`
 - `router.g.dart` - 包含 `routerProvider`
-- `global_stats_notifier.g.dart` - 包含 `globalStatsProvider`
-- `country_list_notifier.g.dart` - 包含 `countriesProvider`
 
 ---
 
@@ -324,7 +324,7 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/errors/app_error.dart';
-import '../notifiers/global_stats_notifier.dart';
+import '../providers/global_stats_notifier.dart';
 import '../providers/config_providers.dart';
 
 /// 全球疫情统计演示页面
@@ -883,7 +883,7 @@ try {
 
 ---
 
-## 项目结构 📁（2026 Riverpod Generator 架构）
+## 项目结构 📁（2026 Riverpod Generator 架构 - 统一 providers 目录）
 
 ```
 lib/
@@ -898,17 +898,15 @@ lib/
 │   └── network/               # 网络基础设施
 │       └── dio_client.dart    # Dio 单例配置、拦截器
 │
-├── notifiers/                  # 状态管理器（@riverpod 注解）
-│   ├── country_list_notifier.dart    # 国家列表状态
-│   ├── country_list_notifier.g.dart  # 生成的Provider
-│   ├── global_stats_notifier.dart   # 全球统计状态
-│   └── global_stats_notifier.g.dart # 生成的Provider
-│
-├── providers/                  # 依赖注入层（Riverpod Generator）
-│   ├── core_providers.dart     # 核心服务（Logger + Repository）
-│   ├── core_providers.g.dart   # 生成的Provider代码
-│   ├── config_providers.dart   # 配置Provider（Theme + DefaultCountry）
-│   └── config_providers.g.dart # 生成的Provider代码
+├── providers/                  # 统一的 Provider 层（Riverpod Generator）
+│   ├── core_providers.dart       # 核心服务（Logger + Repository）
+│   ├── core_providers.g.dart     # 生成的Provider代码
+│   ├── config_providers.dart     # 配置Provider（Theme + DefaultCountry）
+│   ├── config_providers.g.dart   # 生成的Provider代码
+│   ├── global_stats_notifier.dart # 全球统计状态管理器
+│   ├── global_stats_notifier.g.dart # 生成的Provider
+│   ├── country_list_notifier.dart  # 国家列表状态管理器
+│   └── country_list_notifier.g.dart # 生成的Provider
 │
 ├── repositories/               # 数据仓库层
 │   └── covid_repository.dart   # 仓库（接口+实现）
@@ -934,17 +932,17 @@ lib/
 
 **2026 Riverpod Generator 新架构特点：**
 
-1. **新增 providers/ 目录** - 按职责分离 Provider
+1. **统一的 providers/ 目录** - 所有 Provider（服务和状态管理）集中管理
    - `core_providers.dart` - 核心服务层（Logger、Repository）
    - `config_providers.dart` - 配置层（Theme、DefaultCountry）
+   - `*_notifier.dart` - 状态管理器（@riverpod 注解）
 2. **router.dart 职责单一** - 只负责路由配置
-3. **notifiers/ 包含 .g.dart 文件** - 代码生成器自动创建 Provider
+3. **所有 .g.dart 文件在同一目录** - 代码生成器自动创建 Provider
 4. **零样板代码** - 通过 `@riverpod` 注解自动生成所有Provider
 5. **清晰的依赖关系**：
-   - Notifiers → `core_providers.dart`（logger、repository）
-   - Screens → `config_providers.dart`（theme、config）
+   - State Notifiers → `core_providers.dart`（logger、repository）
+   - Screens → `providers/`（使用所有生成的 Provider）
    - main.dart → 按需组合各层 Provider
-
 ---
 
 ## 快速开始 🚀
@@ -993,7 +991,12 @@ flutter run -d chrome --web-port=30000  # 固定端口避免多实例
 - 统一使用 Repository 层
 - 架构更清晰
 
-### ✅ 4. 错误分类处理
+### ✅ 4. 目录结构统一化
+- `notifiers/` 合并到 `providers/`，所有 Provider 集中管理
+- 状态管理和依赖注入在同一目录，架构更清晰
+- 减少导入路径，提高可维护性
+
+### ✅ 5. 错误分类处理
 - 7种错误类型：NetworkError, ServerError, ClientError, TimeoutError, CacheError, DataParseError, UnknownError
 - 自动转换 DioException
 - 用户友好的错误提示
@@ -1066,7 +1069,7 @@ User Action
 ```
 1. 添加仓库方法 (repositories/)
         ↓
-2. 创建 StateNotifier (notifiers/)
+2. 创建 StateNotifier (providers/，使用 @riverpod 注解）
         ↓
 3. 如果需要新的服务依赖 → 添加到 providers/core_providers.dart
         ↓
