@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'config_providers.dart';
 import 'core_providers.dart';
 
 part 'global_stats_notifier.g.dart';
@@ -11,29 +12,18 @@ part 'global_stats_notifier.g.dart';
 class GlobalStats extends _$GlobalStats {
   @override
   Future<Map<String, dynamic>> build() async {
-    ref.read(loggerProvider).i('开始加载全球数据');
-    final globalData = await ref.read(covidRepositoryProvider).getGlobalData();
-    return {
-      'global': globalData,
-      'historical': null,
-    };
+    final String country = ref.watch(selectedCountryProvider);
+    ref.read(loggerProvider).i('开始加载全球数据和 $country 的历史数据');
+    return _loadDashboard(country);
   }
 
   /// 加载全球和历史数据
   Future<void> loadAll(String country) async {
+    ref.read(selectedCountryProvider.notifier).state = country;
     ref.read(loggerProvider).i('开始加载全球和 $country 的历史数据');
 
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      final results = await Future.wait<Map<String, dynamic>>([
-        ref.read(covidRepositoryProvider).getGlobalData(),
-        ref.read(covidRepositoryProvider).getHistoricalData(country),
-      ]);
-      return {
-        'global': results[0],
-        'historical': results[1],
-      };
-    });
+    state = await AsyncValue.guard(() => _loadDashboard(country));
 
     ref.read(loggerProvider).i('全球和历史数据加载完成');
   }
@@ -41,23 +31,24 @@ class GlobalStats extends _$GlobalStats {
   /// 刷新数据
   Future<void> refresh() async {
     ref.read(loggerProvider).i('开始刷新数据');
-
-    final currentData = state.valueOrNull;
-    final hasHistorical = currentData?['historical'] != null;
-
-    if (hasHistorical) {
-      await loadAll('China');
-    } else {
-      state = const AsyncValue.loading();
-      state = await AsyncValue.guard(() async {
-        final globalData = await ref.read(covidRepositoryProvider).getGlobalData();
-        return {
-          'global': globalData,
-          'historical': null,
-        };
-      });
-    }
-
+    final String country = ref.read(selectedCountryProvider);
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _loadDashboard(country));
     ref.read(loggerProvider).i('数据刷新完成');
+  }
+
+  Future<Map<String, dynamic>> _loadDashboard(String country) async {
+    final List<Map<String, dynamic>> results = await Future.wait<
+      Map<String, dynamic>
+    >(<Future<Map<String, dynamic>>>[
+      ref.read(covidRepositoryProvider).getGlobalData(),
+      ref.read(covidRepositoryProvider).getHistoricalData(country),
+    ]);
+
+    return <String, dynamic>{
+      'country': country,
+      'global': results[0],
+      'historical': results[1],
+    };
   }
 }

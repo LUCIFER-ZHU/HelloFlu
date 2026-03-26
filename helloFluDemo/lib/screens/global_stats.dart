@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/colors.dart';
+import '../presenters/global_stats_presenter.dart';
 import '../widgets/graph.dart';
 import '../widgets/drawer.dart';
-import '../providers/config_providers.dart';
 import '../providers/global_stats_notifier.dart';
 
 /// 全球统计页面（Global Stats Screen）
@@ -11,50 +11,11 @@ import '../providers/global_stats_notifier.dart';
 ///
 /// 使用 Riverpod 进行状态管理
 /// Web 对比：类似 React + Context API + useQuery
-class GlobalStatsScreen extends ConsumerStatefulWidget {
+class GlobalStatsScreen extends ConsumerWidget {
   const GlobalStatsScreen({super.key});
 
   @override
-  ConsumerState<GlobalStatsScreen> createState() => _GlobalStatsScreenState();
-}
-
-class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
-  late final String defaultCountry;
-
-  @override
-  void initState() {
-    super.initState();
-    defaultCountry = ref.read(defaultCountryProvider);
-
-    // 延迟加载历史数据，避免阻塞 UI
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(globalStatsProvider.notifier).loadAll(defaultCountry);
-    });
-  }
-
-  /// 格式化大数字
-  String _formatNumber(dynamic number) {
-    if (number == null) return '0';
-    final numValue = number is num ? number : num.tryParse(number.toString()) ?? 0;
-
-    if (numValue >= 1000000) {
-      return '${(numValue / 1000000).toStringAsFixed(1)}M';
-    } else if (numValue >= 1000) {
-      return '${(numValue / 1000).toStringAsFixed(1)}K';
-    }
-    return numValue.toString();
-  }
-
-  /// 格式化更新时间
-  String _formatUpdateTime(dynamic timestamp) {
-    if (timestamp == null) return '';
-    final intValue = timestamp is int ? timestamp : int.tryParse(timestamp.toString()) ?? 0;
-    final date = DateTime.fromMillisecondsSinceEpoch(intValue);
-    return date.toString().substring(0, 19);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final globalStatsAsync = ref.watch(globalStatsProvider);
 
     return Scaffold(
@@ -125,6 +86,10 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
         data: (data) {
           final globalData = data['global'] as Map<String, dynamic>?;
           final historicalData = data['historical'] as Map<String, dynamic>?;
+          final String historicalCountry =
+              data['country'] as String? ??
+              historicalData?['country'] as String? ??
+              'China';
 
           if (globalData == null) {
             return const Center(
@@ -162,19 +127,24 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
                       _buildStatCard('康复', globalData['recovered'].toString(), Colors.green),
                       _buildStatCard('活跃', globalData['active'].toString(), Colors.orange),
                       _buildStatCard('受影响国家', globalData['affectedCountries'].toString(), Colors.purple),
-                      _buildStatCard('检测次数', _formatNumber(globalData['tests']), Colors.teal),
+                      _buildStatCard(
+                        '检测次数',
+                        GlobalStatsPresenter.formatNumber(globalData['tests']),
+                        Colors.teal,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 30),
 
                   // 中国疫情趋势图表
-                  if (historicalData != null) _buildChartsSection(historicalData),
+                  if (historicalData != null)
+                    _buildChartsSection(historicalData, historicalCountry),
 
                   const SizedBox(height: 20),
 
                   // 更新时间
                   Text(
-                    '最后更新: ${_formatUpdateTime(globalData['updated'])}',
+                    '最后更新: ${GlobalStatsPresenter.formatUpdateTime(globalData['updated'])}',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,
@@ -231,27 +201,12 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
   }
 
   /// 构建图表区域
-  Widget _buildChartsSection(Map<String, dynamic> historicalData) {
-    // 调试输出
-    debugPrint('historicalData keys: ${historicalData.keys.toList()}');
-    debugPrint('historicalData has timeline: ${historicalData.containsKey('timeline')}');
-    
-    if (!historicalData.containsKey('timeline')) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Text(
-            '暂无历史数据',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    final timeline = historicalData['timeline'];
-    debugPrint('timeline type: ${timeline.runtimeType}');
-    
-    final timelineMap = timeline as Map<String, dynamic>?;
+  Widget _buildChartsSection(
+    Map<String, dynamic> historicalData,
+    String country,
+  ) {
+    final Map<String, dynamic>? timelineMap =
+        GlobalStatsPresenter.getTimeline(historicalData);
     if (timelineMap == null || timelineMap.isEmpty) {
       return const Center(
         child: Padding(
@@ -264,9 +219,12 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
       );
     }
 
-    final casesData = _transformTimelineData(timelineMap['cases'] as Map<String, dynamic>?);
-    final deathsData = _transformTimelineData(timelineMap['deaths'] as Map<String, dynamic>?);
-    final recoveredData = _transformTimelineData(timelineMap['recovered'] as Map<String, dynamic>?);
+    final List<Map<String, dynamic>> casesData =
+        GlobalStatsPresenter.transformTimelineData(timelineMap['cases']);
+    final List<Map<String, dynamic>> deathsData =
+        GlobalStatsPresenter.transformTimelineData(timelineMap['deaths']);
+    final List<Map<String, dynamic>> recoveredData =
+        GlobalStatsPresenter.transformTimelineData(timelineMap['recovered']);
 
     if (casesData.isEmpty && deathsData.isEmpty && recoveredData.isEmpty) {
       return const Center(
@@ -282,8 +240,8 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
 
     return Column(
       children: [
-        const Text(
-          '中国疫情趋势',
+        Text(
+          '$country 疫情趋势',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -318,59 +276,5 @@ class _GlobalStatsScreenState extends ConsumerState<GlobalStatsScreen> {
           ),
       ],
     );
-  }
-
-  /// 转换时间线数据格式
-  List<Map<String, dynamic>> _transformTimelineData(Map<String, dynamic>? timelineData) {
-    if (timelineData == null || timelineData.isEmpty) {
-      debugPrint('timelineData is null or empty');
-      return [];
-    }
-
-    debugPrint('timelineData entries count: ${timelineData.length}');
-    debugPrint('timelineData sample keys: ${timelineData.keys.take(3).toList()}');
-
-    final result = <Map<String, dynamic>>[];
-    timelineData.forEach((key, value) {
-      try {
-        final dateParts = key.split('/');
-        if (dateParts.length == 3) {
-          final month = int.parse(dateParts[0]);
-          final day = int.parse(dateParts[1]);
-          final year = 2000 + int.parse(dateParts[2]);
-
-          result.add({
-            'date': DateTime(year, month, day),
-            'value': (value as num).toInt(),
-          });
-        } else {
-          debugPrint('Invalid date format: $key');
-        }
-      } catch (e) {
-        debugPrint('Error parsing timeline data: key=$key, value=$value, error=$e');
-      }
-    });
-    
-    debugPrint('Transformed data count: ${result.length}');
-
-    // 按日期排序
-    result.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
-
-    // 数据采样：如果数据点超过100个，进行下采样
-    const maxDataPoints = 100;
-    if (result.length > maxDataPoints) {
-      final step = result.length / maxDataPoints;
-      final sampled = <Map<String, dynamic>>[];
-      for (int i = 0; i < maxDataPoints; i++) {
-        final index = (i * step).floor();
-        if (index < result.length) {
-          sampled.add(result[index]);
-        }
-      }
-      sampled.add(result.last);
-      return sampled;
-    }
-
-    return result;
   }
 }

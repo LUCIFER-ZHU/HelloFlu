@@ -1,191 +1,119 @@
-# HelloFlu - Flutter学习项目 📱
+# HelloFlu
 
-一个完整的 Flutter COVID-19 疫情追踪应用，采用企业级架构和现代化技术栈。
+一个用于学习 Flutter 架构拆分的 COVID-19 追踪项目。
 
-**项目状态**: ✅ 生产就绪 | 🏗️ 企业级架构 | 📱 跨平台支持 | 📚 完整教程
+当前版本重点不是继续堆功能，而是把已有代码整理成更适合学习和演进的结构：
 
----
+- 页面负责展示，不再承担主要数据加工逻辑
+- 搜索状态拆成“原始数据 + 查询词 + 派生结果”
+- Repository 不再只是转发接口，而是承担第三方数据清洗
 
-## 📚 完整开发教程（重点推荐）
+主项目位于 [helloFluDemo](/E:/ZjmCode/HelloFlu/helloFluDemo)。
 
-### 从零到一：网络数据 → UI 展示的完整流程
+## 这次优化了什么
 
-**[📖 查看完整教程](./helloFluDemo/README.md)**
+### 1. Screen 只做展示
 
-本教程提供详细的端到端示例，带你完整体验：
+全球统计页原本在页面里处理数字格式化、更新时间格式化、时间线解析和采样。现在这些逻辑已经迁到：
 
+- [global_stats_presenter.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/presenters/global_stats_presenter.dart)
+
+对应页面变得更轻：
+
+- [global_stats.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/screens/global_stats.dart)
+
+### 2. 搜索状态拆分
+
+国家列表原本把搜索结果直接写回主状态。现在拆成：
+
+- 原始远端数据：`countriesProvider`
+- 搜索关键字：`countrySearchQueryProvider`
+- 派生展示结果：`filteredCountriesProvider`
+
+相关文件：
+
+- [country_list_notifier.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/providers/country_list_notifier.dart)
+- [country_search_providers.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/providers/country_search_providers.dart)
+- [country_list.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/screens/country_list.dart)
+
+### 3. Repository 负责第三方接口清洗
+
+考虑到第三方接口字段不稳定，这一版没有强推严格强类型模型，而是先让 Repository 负责：
+
+- 结构兜底
+- 缺省值兜底
+- timeline 清洗
+- 国家列表字段统一
+
+相关文件：
+
+- [covid_repository.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/repositories/covid_repository.dart)
+
+### 4. 默认国家和页面状态解耦
+
+新增了 `selectedCountryProvider`，把“默认配置”和“当前页面状态”分开：
+
+- [config_providers.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/providers/config_providers.dart)
+- [global_stats_notifier.dart](/E:/ZjmCode/HelloFlu/helloFluDemo/lib/providers/global_stats_notifier.dart)
+
+## 当前架构
+
+```text
+main.dart
+  -> ProviderScope
+  -> router / screens
+  -> providers
+  -> repository
+  -> dio client
+  -> disease.sh API
 ```
-第1步：定义数据层（Repository）      → 网络请求 + 缓存 + 错误处理
-第2步：定义状态管理（StateNotifier）  → 管理异步状态
-第3步：注册Provider（依赖注入）       → Riverpod配置
-第4步：创建UI页面（Screen）          → 显示数据卡片
-第5步：添加路由配置                   → 页面导航
+
+按目录看：
+
+```text
+helloFluDemo/lib/
+├── config/        # 配置和主题
+├── core/          # 网络与错误处理
+├── presenters/    # 展示层数据加工
+├── providers/     # Riverpod 状态和依赖
+├── repositories/  # 第三方接口清洗与访问
+├── screens/       # 页面
+├── widgets/       # 复用组件
+├── main.dart
+└── router.dart
 ```
 
-### 教程亮点
+这套结构适合学习这些主题：
 
-- ✅ **从零开始**：不需要任何前置知识
-- ✅ **详细注释**：每行代码都有说明
-- ✅ **完整流程**：网络 → 数据 → 状态 → UI
-- ✅ **最佳实践**：企业级架构和代码规范
-- ✅ **错误处理**：网络错误、超时、服务器错误分类处理
-- ✅ **缓存机制**：内存缓存 + 磁盘缓存
-- ✅ **响应式UI**：加载中、成功、失败三种状态
+- Riverpod Generator 的依赖注入
+- 页面与状态层的职责边界
+- 第三方接口容错
+- Flutter 中“派生状态”的组织方式
 
----
-
-## 项目结构 📁
-
-```
-HelloFlu/
-├── helloFluDemo/              # 主项目（含完整教程）
-│   ├── lib/                   # 源代码
-│   │   ├── core/             # 核心功能（缓存、错误处理、网络）
-│   │   ├── config/           # 配置文件
-│   │   ├── models/           # 数据模型
-│   │   ├── notifiers/        # 状态管理
-│   │   ├── providers/        # 依赖注入
-│   │   ├── repositories/     # 数据仓库
-│   │   ├── screens/          # 页面
-│   │   ├── widgets/          # 组件
-│   │   └── main.dart         # 入口
-│   ├── README.md             # ⭐ 完整开发教程
-│   └── pubspec.yaml          # 依赖配置
-│
-├── temp_flutter_examples/     # 参考项目（原版对比）
-│   └── covid19_mobile_app/
-│
-└── README.md                 # 本文件
-```
-
----
-
-## 核心技术栈
-
-| 功能 | 技术 | 版本 | 用途 |
-|------|------|------|------|
-| **状态管理** | flutter_riverpod | ^2.6.1 | 响应式状态管理 + 依赖注入 |
-| **网络请求** | dio | ^5.9.1 | HTTP客户端 + 拦截器 |
-| **路由** | go_router | ^17.0.1 | 声明式路由 |
-| **图表** | fl_chart | ^1.1.0 | 数据可视化 |
-| **缓存** | shared_preferences | ^2.5.4 | 本地持久化 |
-| **日志** | logger | ^2.6.2 | 彩色日志输出 |
-
----
-
-## 快速开始
+## 运行方式
 
 ```bash
-# 1. 进入项目
 cd helloFluDemo
-
-# 2. 安装依赖
 flutter pub get
-
-# 3. 运行应用
 flutter run
+```
 
-# 4. 或运行特定平台
+Web 调试：
+
+```bash
 flutter run -d chrome --web-port=30000
 ```
 
-### 环境要求
+## 学习建议
 
-- Flutter SDK >= 3.8.0
-- Dart SDK >= 3.0.0
-- Android Studio / VS Code
+如果你后面继续往下练，推荐顺序是：
 
----
+1. 先给图表、列表、repository 补测试
+2. 再补缓存策略
+3. 再考虑把部分动态 map 收敛成半强类型结构
+4. 最后再增加更复杂的页面状态，比如筛选、排序、分页
 
-## 学习资源
+## 相关文档
 
-### 必读文档
-
-| 文档 | 说明 | 适合人群 |
-|------|------|----------|
-| [helloFluDemo/README.md](./helloFluDemo/README.md) | ⭐ 完整开发教程（重点） | 所有人 |
-| [AGENTS.md](./AGENTS.md) | 代码规范和架构说明 | 开发者 |
-
-### 推荐学习路径
-
-1. **零基础入门** → 阅读 [完整教程](./helloFluDemo/README.md)
-2. **理解架构** → 查看 [AGENTS.md](./AGENTS.md)
-3. **动手实践** → 按照教程自己实现一遍
-4. **对比学习** → 参考 temp_flutter_examples/ 中的原版
-
----
-
-## 主要功能
-
-- 📊 **全球疫情概览**：实时统计数据展示
-- 📈 **趋势图表**：折线图展示历史数据
-- 🌍 **国家列表**：所有国家详细数据
-- 🔍 **搜索功能**：按国家名称搜索
-- 🔄 **下拉刷新**：手动刷新数据
-- 💾 **智能缓存**：减少API调用，支持离线
-
----
-
-## 最佳实践
-
-### 架构设计
-
-- ✅ **分层架构**：Core → Config → Models → Repositories → Notifiers → Screens
-- ✅ **依赖注入**：Riverpod Provider 管理所有依赖
-- ✅ **单一职责**：每层只做一件事
-- ✅ **缓存优先**：先查缓存，再请求API
-- ✅ **错误分类**：不同错误不同处理
-
-### 代码规范
-
-- ✅ **类型安全**：全面使用 Null Safety
-- ✅ **统一日志**：Logger 替代 print()
-- ✅ **环境配置**：.env 文件管理配置
-- ✅ **响应式UI**：AsyncValue 处理三种状态
-
----
-
-## 常用命令
-
-```bash
-# 进入项目
-cd helloFluDemo
-
-# 安装依赖
-flutter pub get
-
-# 运行应用
-flutter run
-
-# 代码分析
-flutter analyze
-
-# 格式化代码
-dart format .
-
-# 构建发布版本
-flutter build apk --release
-flutter build ios --release
-flutter build web --release
-```
-
----
-
-## 参考资源
-
-- [Flutter官方文档](https://flutter.dev/docs)
-- [Dart语言指南](https://dart.dev/guides)
-- [Riverpod文档](https://riverpod.dev/)
-- [Dio文档](https://pub.dev/packages/dio)
-
----
-
-## 许可证
-
-本项目基于 Apache License 2.0 开源。
-
----
-
-**🎉 开始学习Flutter企业级开发！**
-
-[👉 点击阅读完整教程](./helloFluDemo/README.md)
+- [项目内说明文档](/E:/ZjmCode/HelloFlu/helloFluDemo/README.md)
+- [代码规范与协作说明](/E:/ZjmCode/HelloFlu/AGENTS.md)

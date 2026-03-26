@@ -22,3 +22,12 @@ ThemeData theme(Ref ref) {
 String defaultCountry(Ref ref) {
   return AppConfig.defaultCountry;
 }
+
+/// 当前选中的历史数据国家
+///
+/// 与默认国家分离，便于页面状态和配置状态解耦
+final StateProvider<String> selectedCountryProvider = StateProvider<String>((
+  Ref ref,
+) {
+  return ref.watch(defaultCountryProvider);
+});
